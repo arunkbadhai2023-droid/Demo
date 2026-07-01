@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Sprout — your AI life companion</title>
+<meta name="description" content="A gentle AI companion that meets you where you are." />
+<link rel="manifest" href="./manifest.webmanifest" />
+<meta name="theme-color" content="#F4EFE7" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Sprout" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4EFE7; --paper2:#FBF8F2; --card:#FFFFFF;
+    --ink:#2B2620; --ink-soft:#7A6F61; --ink-faint:#A99F90; --line:#E7DECF;
+    --sage:#4F7A6B; --sage-mid:#5E8C7C; --sage-tint:#E7EFE9;
+    --clay:#C8714E; --clay-tint:#F6E7DD;
+    --dusk:#5C5A7A; --dusk-tint:#E9E8F0;
+    --honey:#C0892B; --honey-tint:#F3E8CE;
+    --care:#A8412C; --care-tint:#F7E4DD;
+    --serif:'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:var(--sans); color:var(--ink);
+    background:var(--paper);
+    min-height:100vh; min-height:100dvh;
+  }
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  button:focus-visible, [tabindex]:focus-visible, textarea:focus-visible, input:focus-visible{
+    outline:2px solid var(--sage); outline-offset:2px;
+  }
+  ::-webkit-scrollbar{width:0; height:0;}
+
+  /* MOBILE-FIRST: the app fills the whole screen like a native app */
+  .phone{
+    width:100%; height:100vh; height:100dvh; background:var(--paper);
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  /* DESKTOP: present it in a centred device frame on a warm backdrop */
+  @media (min-width:600px){
+    body{
+      background:radial-gradient(1200px 620px at 72% -12%, var(--paper2), var(--paper) 60%);
+      display:flex; justify-content:center; align-items:flex-start; padding:24px 12px;
+    }
+    .phone{
+      max-width:430px; height:min(880px,94vh); border-radius:34px;
+      border:1px solid var(--line); box-shadow:0 30px 90px rgba(43,38,32,.20);
+    }
+  }
+  .scroll{flex:1; overflow-y:auto;}
+  .pad{padding:6px 20px 20px;}
+  #watermark{position:absolute; inset:0; z-index:0; pointer-events:none;}
+  #moodaura{position:absolute; inset:0; z-index:0; pointer-events:none;}
+  .topbar, .scroll, .tabbar{position:relative; z-index:1;}
+
+  html.reduce-motion *{animation:none!important; transition:none!important;}
+  html.readable-font{ letter-spacing:.01em; }
+  html.readable-font .h1, html.readable-font .brand .name{ letter-spacing:0; }
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(0); z-index:200;
+    background:var(--ink); color:var(--paper); padding:12px 18px; border-radius:999px; font-size:14px; font-weight:600;
+    display:flex; align-items:center; gap:9px; box-shadow:0 12px 34px rgba(0,0,0,.28); animation:toastIn .3s ease, toastOut .3s ease 2.4s forwards; max-width:88vw;}
+  @keyframes toastIn{from{opacity:0; transform:translateX(-50%) translateY(20px);}to{opacity:1; transform:translateX(-50%) translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateX(-50%) translateY(14px);}}
+  .confetti{position:fixed; top:0; left:0; width:10px; height:14px; z-index:199; pointer-events:none; border-radius:2px; will-change:transform,opacity; animation:confFall 1.5s cubic-bezier(.2,.6,.3,1) forwards;}
+  @keyframes confFall{0%{opacity:1; transform:translateY(-10vh) rotate(0);}100%{opacity:0; transform:translateY(70vh) rotate(540deg);}}
+
+  .h1{font-family:var(--serif); letter-spacing:-.015em; color:var(--ink);}
+  .eyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);}
+  .muted{color:var(--ink-soft);}
+  .faint{color:var(--ink-faint);}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:24px; padding:18px;
+    box-shadow:0 1px 2px rgba(43,38,32,.04), 0 8px 24px rgba(43,38,32,.04);
+  }
+  .tap{transition:transform .12s ease;} .tap:active{transform:scale(.96);}
+
+  .btn{border-radius:999px; font-weight:600; font-size:15px; padding:13px 18px; border:1px solid transparent; transition:transform .1s ease;}
+  .btn:active{transform:scale(.96);} .btn[disabled]{opacity:.42; pointer-events:none;}
+  .btn-primary{background:var(--sage); color:#fff;}
+  .btn-clay{background:var(--clay); color:#fff;}
+  .btn-soft{background:var(--sage-tint); color:var(--sage);}
+  .btn-ghost{background:transparent; color:var(--ink); border-color:var(--line);}
+  .btn-block{width:100%;}
+
+  .pill{border-radius:999px; padding:10px 15px; font-size:13.5px; font-weight:500; border:1.5px solid var(--line); background:var(--card); color:var(--ink); transition:transform .1s;}
+  .pill:active{transform:scale(.95);}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:calc(14px + env(safe-area-inset-top, 0px)) 20px 10px; background:var(--paper);}
+  .brand{display:flex; align-items:center; gap:9px;}
+  .brand .logo{width:30px; height:30px; border-radius:10px; background:var(--sage); display:grid; place-items:center;}
+  .brand .name{font-family:var(--serif); font-size:21px; letter-spacing:-.01em;}
+  .help-btn{display:flex; align-items:center; gap:6px; padding:7px 13px; border-radius:999px; background:var(--care-tint); color:var(--care); font-size:12.5px; font-weight:700; border:1px solid rgba(168,65,44,.13);}
+
+  .tabbar{flex-shrink:0; background:rgba(251,248,242,.93); backdrop-filter:blur(10px); border-top:1px solid var(--line); padding:10px 8px calc(12px + env(safe-area-inset-bottom, 0px)); display:flex; justify-content:space-around; align-items:flex-end;}
+  .tab{display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 6px; width:62px;}
+  .tab span{font-size:10.5px; font-weight:500;}
+  .tab.center{margin-top:-18px;}
+  .tab .fab{width:52px; height:52px; border-radius:18px; background:var(--clay); display:grid; place-items:center; box-shadow:0 8px 20px rgba(200,113,78,.4);}
+
+  .iconwrap{display:grid; place-items:center; flex-shrink:0;}
+  .row{display:flex; align-items:center; gap:12px;}
+
+  textarea, input{font-family:var(--sans); color:var(--ink); background:var(--card); border:1px solid var(--line); outline:none;}
+  textarea{resize:none;}
+
+  .bubble{max-width:80%; padding:11px 14px; border-radius:18px; font-size:14.5px; line-height:1.5;}
+  .bubble.user{background:var(--clay); color:#fff; border-bottom-right-radius:6px;}
+  .bubble.bot{background:var(--card); color:var(--ink); border:1px solid var(--line); border-bottom-left-radius:6px;}
+
+  .overlay{position:absolute; inset:0; z-index:60; background:rgba(43,38,32,.34); display:flex; align-items:flex-end; animation:fade .2s ease;}
+  .sheet{width:100%; max-height:90%; overflow-y:auto; background:var(--paper); border-top-left-radius:28px; border-top-right-radius:28px; animation:slide .28s cubic-bezier(.2,.8,.2,1); padding-bottom:env(safe-area-inset-bottom, 0px);}
+  .grip{width:40px; height:5px; border-radius:99px; background:var(--line); margin:12px auto 0;}
+
+  .step-row{display:flex; gap:13px; align-items:flex-start; padding:14px; border-radius:16px; background:var(--paper2); border:1px solid var(--line);}
+  .step-num{width:24px; height:24px; border-radius:8px; color:#fff; font-size:13px; font-weight:700; display:grid; place-items:center; flex-shrink:0;}
+
+  .dot{width:7px; height:7px; border-radius:99px; background:var(--sage); display:inline-block; animation:pulse 1s infinite ease-in-out;}
+
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes slide{from{transform:translateY(22px); opacity:.6}to{transform:translateY(0); opacity:1}}
+  @keyframes pulse{0%,100%{opacity:.3; transform:scale(.8)}50%{opacity:1; transform:scale(1.1)}}
+  @keyframes slideRight{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+
+  .drawer{width:300px; max-width:87%; height:100%; background:var(--paper); overflow-y:auto; animation:slideRight .26s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom, 0px);}
+  .icon-btn{width:38px; height:38px; border-radius:12px; display:grid; place-items:center; transition:background .15s;}
+  .icon-btn:active{background:var(--line);}
+
+  .disc-head{display:flex; align-items:center; justify-content:space-between; width:100%; padding:13px 8px; text-align:left;}
+  .disc-head .lbl{font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);}
+  .chev{transition:transform .2s;} .chev.open{transform:rotate(180deg);}
+  .nav-item{display:flex; align-items:center; gap:12px; width:100%; padding:11px 10px; border-radius:12px; text-align:left; font-size:14.5px; color:var(--ink); transition:background .12s;}
+  .nav-item:active{background:var(--sage-tint);}
+
+  .popover{position:absolute; top:calc(54px + env(safe-area-inset-top, 0px)); right:14px; width:214px; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 14px 34px rgba(43,38,32,.18); padding:6px; z-index:70; animation:fade .14s ease;}
+  .pop-item{display:flex; align-items:center; gap:11px; width:100%; padding:11px 12px; border-radius:11px; text-align:left; font-size:14px; color:var(--ink); transition:background .12s;}
+  .pop-item:active{background:var(--paper2);}
+  .pop-item.danger{color:var(--care);}
+  .pop-sep{height:1px; background:var(--line); margin:5px 8px;}
+
+  .switch{width:44px; height:26px; border-radius:99px; background:var(--line); position:relative; flex-shrink:0; transition:background .2s;}
+  .switch.on{background:var(--sage);}
+  .switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:99px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:left .2s;}
+  .switch.on .knob{left:21px;}
+  .pref{display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);}
+  .pref:last-child{border-bottom:none;}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none!important; transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="phone" id="phone"></div>
+
+<script>
+/* =================================================================== *
+ *  LUMEN — an AI life companion (single-file prototype)
+ *  Lumi gives supportive AI responses but is scoped as a companion,
+ *  never a therapist or crisis service. Crisis safety = defense in depth.
+ * =================================================================== */
+
+/* ----------------------------- icons ------------------------------ */
+const ICONS = {
+  leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.52-4.48 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+  sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8Z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2Z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  wind:'<path d="M12.8 19.6A2 2 0 1 0 14 16H2M17.5 8a2.5 2.5 0 1 1 2 4H2M9.8 4.4A2 2 0 1 1 11 8H2"/>',
+  heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  message:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>',
+  chevR:'<path d="m9 18 6-6-6-6"/>',
+  chevL:'<path d="m15 18-6-6 6-6"/>',
+  chevD:'<path d="m6 9 6 6 6-6"/>',
+  menu:'<path d="M3 6h18M3 12h18M3 18h18"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  trash:'<path d="M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  download:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
+  volume:'<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/>',
+  volumeX:'<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="m22 9-6 6M16 9l6 6"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  sparkles:'<path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/>',
+  compass:'<circle cx="12" cy="12" r="10"/><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9"/>',
+  book:'<path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3Z"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/>',
+  lightbulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
+  waves:'<path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>',
+  anchor:'<circle cx="12" cy="5" r="3"/><path d="M12 22V8M5 12H2a10 10 0 0 0 20 0h-3"/>',
+  palette:'<circle cx="13.5" cy="6.5" r="1.1"/><circle cx="17.5" cy="10.5" r="1.1"/><circle cx="8.5" cy="7.5" r="1.1"/><circle cx="6.5" cy="12.5" r="1.1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.6-1.6h2c3 0 5.5-2.5 5.5-5.5C22 6 17.5 2 12 2Z"/>',
+  music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  trending:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  grad:'<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/>',
+  brief:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  baby:'<path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+};
+function svg(name, size=22, color='currentColor'){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${color}">${ICONS[name]||''}</svg>`;
+}
+function dots(size=20, color='currentColor'){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" style="color:${color}"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>`;
+}
+
+/* ----------------------------- data ------------------------------- */
+const STAGES = [
+  {id:'student', label:'Student / teen',     icon:'grad',    hint:'exams, identity, future'},
+  {id:'young',   label:'Finding my footing', icon:'compass', hint:'career, dating, who I am'},
+  {id:'couple',  label:'In a relationship',  icon:'heart',   hint:'connection & conflict'},
+  {id:'parent',  label:'Parenting',          icon:'baby',    hint:'raising kids, the guilt'},
+  {id:'work',    label:'Working pro',        icon:'brief',   hint:'stress, burnout, growth'},
+  {id:'jobless', label:'Between jobs',       icon:'activity',hint:'rejection, motivation'},
+  {id:'trans',   label:'A hard transition',  icon:'waves',   hint:'breakup, divorce, loss'},
+  {id:'senior',  label:'Later chapters',     icon:'sun',     hint:'purpose, grief, change'},
+];
+const EVENTS = ['Exam pressure','A breakup','Job hunting','Burnt out','Lonely','Sleep is rough',
+  'Conflict at home','A new baby','Grieving','Money worries','A big decision',
+  'Overthinking everything','Low on confidence','Just checking in'];
+
+const MOD = {
+  mind:   {label:'Mindfulness',     color:'var(--sage)',  icon:'leaf',     about:'Paying attention to the present, on purpose, without judgement.'},
+  breath: {label:'Breathwork',      color:'var(--sage-mid)',icon:'wind',   about:'Using the breath to steady the nervous system.'},
+  cbt:    {label:'CBT',             color:'var(--honey)', icon:'lightbulb',about:'Noticing and gently reshaping unhelpful thoughts.'},
+  act:    {label:'ACT',             color:'var(--dusk)',  icon:'compass',  about:'Making room for feelings while moving toward your values.'},
+  dbt:    {label:'DBT',             color:'var(--dusk)',  icon:'waves',    about:'Skills for riding out intense emotion without making it worse.'},
+  art:    {label:'Art therapy',     color:'var(--clay)',  icon:'palette',  about:'Letting feelings out through colour and line — no talent required.'},
+  music:  {label:'Music therapy',   color:'var(--dusk)',  icon:'music',    about:'Using sound and rhythm to shift how you feel.'},
+  nlp:    {label:'NLP',             color:'var(--clay)',  icon:'sparkles', about:'Self-coaching for mindset and state. Popular, though clinical evidence is limited — use it as a tool, not treatment.'},
+  narr:   {label:'Narrative',       color:'var(--sage)',  icon:'pen',      about:'Separating you from the problem, and re-authoring the story.'},
+  soma:   {label:'Somatic',         color:'var(--dusk)',  icon:'activity', about:'Working with the body to release what the mind can’t talk out.'},
+  write:  {label:'Expressive writing',color:'var(--honey)',icon:'pen',     about:'Putting it on the page to make sense of it.'},
+  pos:    {label:'Positive psych',  color:'var(--honey)', icon:'sun',      about:'Building on what’s strong, not only fixing what’s wrong.'},
+  gestalt:{label:'Gestalt',         color:'var(--dusk)',  icon:'message',  about:'Finishing unsaid conversations, in the here and now.'},
+};
+
+const TOOLS = [
+  {id:'box',   t:'Box breathing',     m:4, mod:'breath', for:['anxious','stressed','panicky','overwhelmed','nervous'],
+    b:'Slow the body down when your chest goes tight.',
+    s:['Breathe in through your nose for 4.','Hold gently for 4.','Out slowly for 4. Hold for 4.','Repeat four rounds.']},
+  {id:'ground',t:'5-4-3-2-1 grounding',m:3, mod:'mind', for:['anxious','panicky','overwhelmed','spiralling'],
+    b:'Come back to the room when your mind races ahead.',
+    s:['Name 5 things you can see.','4 you can feel, 3 you can hear.','2 you can smell, 1 you can taste.','Notice you’re here, now.']},
+  {id:'label', t:'Name the feeling',  m:2, mod:'mind', for:['overwhelmed','numb','confused','tense'],
+    b:'Affect labelling — naming it turns the volume down.',
+    s:['Pause and check inward.','Find the closest word: sad? scared? tired?','Say it: “I’m feeling ___.”','Notice the body soften, even a little.']},
+  {id:'scan',  t:'Body scan',         m:5, mod:'mind', for:['tense','restless','tired','anxious'],
+    b:'Travel slowly through the body and let it land.',
+    s:['Start at your feet, notice without fixing.','Move up slowly to the crown.','Breathe into any tight spot.','Rest a moment when you finish.']},
+  {id:'reframe',t:'Catch the thought',m:4, mod:'cbt', for:['self-critical','overthinking','stuck','low'],
+    b:'A CBT look at a thought that’s weighing on you.',
+    s:['Write the hot thought, word for word.','Evidence for it? Against it?','What would you tell a friend?','Write one fairer, kinder version.']},
+  {id:'worry', t:'Worry postponement',m:3, mod:'cbt', for:['anxious','overthinking','spiralling'],
+    b:'Park the loop instead of fighting it.',
+    s:['Jot the worry in one line.','Book it: “I’ll think about this at 6pm.”','Gently return to now.','At 6pm: act on it, or let it go.']},
+  {id:'activate',t:'The smallest step',m:2, mod:'cbt', for:['low','unmotivated','stuck','flat'],
+    b:'Behavioural activation — momentum beats motivation.',
+    s:['Pick a task that feels too big.','Cut it to something laughably small.','Do only that one piece.','Stop. You’re allowed to stop there.']},
+  {id:'values',t:'Values check',      m:4, mod:'act', for:['stuck','uncertain','decision','lost'],
+    b:'An ACT nudge when you’re unsure which way to go.',
+    s:['What kind of person do you want to be here?','Name the value: honesty? courage? care?','What tiny step points that way?','Take it — direction over distance.']},
+  {id:'leaves',t:'Leaves on a stream',m:4, mod:'act', for:['overthinking','spiralling','anxious'],
+    b:'An ACT defusion practice — watch thoughts float by.',
+    s:['Picture a slow stream with leaves.','Place each thought on a leaf.','Let the current carry it past.','You’re the watcher, not the thought.']},
+  {id:'willing',t:'Make room for it',  m:3, mod:'act', for:['numb','low','overwhelmed'],
+    b:'Acceptance instead of fighting the feeling.',
+    s:['Locate the feeling in your body.','Breathe around its edges, soften.','Say: “I can make room for this.”','Let it be here without a fight.']},
+  {id:'opposite',t:'Opposite action', m:5, mod:'dbt', for:['low','avoiding','flat','unmotivated'],
+    b:'A DBT skill for when the urge is to withdraw.',
+    s:['Notice the urge (hide, scroll, cancel).','Name the feeling under it.','Do the gentle opposite — small.','Notice how you feel after.']},
+  {id:'soothe',t:'Self-soothe, five senses',m:4, mod:'dbt', for:['overwhelmed','distressed','tense','restless'],
+    b:'Comfort the nervous system, kindly.',
+    s:['One kind thing to see (a photo, the sky).','One to hear, one to touch.','One warm taste, one calming smell.','Let comfort be enough right now.']},
+  {id:'cooldown',t:'Cool-down before you reply',m:3, mod:'dbt', for:['angry','conflict','reactive','frustrated'],
+    b:'For mid-argument, before words you can’t unsay.',
+    s:['Name it: “I’m flooded right now.”','Ask for 20 minutes, don’t storm off.','Slow your breathing while you wait.','Return to the issue, not the attack.']},
+  {id:'drawfeel',t:'Draw the feeling', m:5, mod:'art', for:['overwhelmed','numb','angry','confused'],
+    b:'No skill needed — let it out through colour and line.',
+    s:['Grab paper, or a notes-app canvas.','Scribble the feeling — colour, pressure, shape.','Don’t aim for “good”, aim for true.','Look at it: what does it tell you?']},
+  {id:'container',t:'Worry container', m:4, mod:'art', for:['anxious','overthinking','overwhelmed'],
+    b:'Give the worry a place to live outside your head.',
+    s:['Draw a strong box with a lid.','Write or draw each worry inside it.','Close the lid — picture it sealing.','It’s held for now; you can reopen later.']},
+  {id:'redraw', t:'Draw it, then change it',m:5, mod:'art', for:['stuck','low','hopeless'],
+    b:'Sketch the problem, then redraw it with one change.',
+    s:['Draw the situation as it feels now.','Notice where you sit in the picture.','Redraw it with one thing different.','That difference is a clue to a step.']},
+  {id:'isomusic',t:'Match, then shift', m:4, mod:'music', for:['low','sad','flat','angry'],
+    b:'The iso principle — meet your mood, then lead it.',
+    s:['Pick a song that matches how you feel.','Then one a little lighter.','Then one toward where you want to be.','Let the music walk you there.']},
+  {id:'onesong',t:'One song, full attention',m:4, mod:'music', for:['overwhelmed','restless','numb'],
+    b:'Mindful listening — let one song hold you.',
+    s:['Choose a song, close your eyes.','Follow one instrument the whole way.','When the mind wanders, return to it.','Notice how you feel after.']},
+  {id:'anchor',t:'Anchor a calm state',m:4, mod:'nlp', for:['anxious','nervous','stressed'],
+    b:'An NLP technique to recall calm on cue.',
+    s:['Recall a time you felt calm and safe.','Step in: see, hear, feel it fully.','At the peak, press finger and thumb.','Repeat, then re-fire the gesture when you need it.']},
+  {id:'reframe2',t:'Reframe the meaning',m:4, mod:'nlp', for:['stuck','upset','self-critical'],
+    b:'Try on a different frame for the same situation.',
+    s:['State what happened, plainly.','Ask: what else could this mean?','What might it make possible?','Choose a frame that helps you move.']},
+  {id:'rehearse',t:'Future rehearsal',m:4, mod:'nlp', for:['nervous','anxious','uncertain'],
+    b:'Mentally rehearse handling it well.',
+    s:['Picture the moment you’re dreading.','Run it like a film — but going well.','Add the calm version of you.','Replay twice; let the body learn it.']},
+  {id:'external',t:'Name the problem', m:4, mod:'narr', for:['self-critical','low','overwhelmed'],
+    b:'Narrative therapy — separate you from the problem.',
+    s:['Give the problem a name: “the Worry”.','Talk about it, not as you: “it shows up when…”','Notice: you are not the problem.','Ask what helps you stand apart from it.']},
+  {id:'exception',t:'Find the exception',m:4, mod:'narr', for:['hopeless','stuck','low'],
+    b:'Find a time the problem didn’t win.',
+    s:['Recall a moment it could’ve struck — but didn’t.','What was different about you then?','What strength were you using?','How could you borrow that again?']},
+  {id:'orient',t:'Orienting to safety',m:3, mod:'soma', for:['anxious','panicky','tense','overwhelmed'],
+    b:'A somatic practice to tell the body it’s safe.',
+    s:['Slowly turn your head, look around.','Let your eyes rest on something neutral.','Notice: in this moment, you’re okay.','Feel your feet, your seat, your breath.']},
+  {id:'shake', t:'Shake it off',       m:2, mod:'soma', for:['tense','restless','angry','wired'],
+    b:'Discharge stuck tension through movement.',
+    s:['Stand, soften your knees.','Gently shake hands, arms, then whole body.','Let it be loose and a little silly.','Stop, and feel the buzz settle.']},
+  {id:'pmr',   t:'Muscle release',      m:5, mod:'soma', for:['tense','restless','anxious','tired'],
+    b:'Progressive muscle relaxation, short version.',
+    s:['Tense your feet for 5 seconds, release.','Move up: legs, belly, hands, shoulders.','Tense, then let go, each group.','Finish with three slow breaths.']},
+  {id:'dump',  t:'Brain dump',          m:5, mod:'write', for:['overwhelmed','overthinking','anxious'],
+    b:'Everything out of your head, onto the page.',
+    s:['Set a 5-minute timer.','Write everything — no order, no editing.','Don’t stop to fix or judge.','At the end, underline what actually matters.']},
+  {id:'letter',t:'Unsent letter',       m:6, mod:'write', for:['angry','grieving','hurt','stuck'],
+    b:'Say it all to someone — and never send it.',
+    s:['Write to the person (or a part of you).','Hold nothing back; this is just for you.','Say what you wish you could.','If it gets too heavy, pause and do a calming practice.']},
+  {id:'express',t:'Expressive writing', m:12,mod:'write', for:['grieving','low','overwhelmed'],
+    b:'Pennebaker’s method for a hard experience.',
+    s:['Write continuously for 12–15 minutes.','Explore a hard event and how it felt.','Let it be messy; meaning comes later.','If it’s too much, stop and switch to something soothing.']},
+  {id:'three', t:'Three good things',   m:3, mod:'pos', for:['low','flat','grateful','reflective'],
+    b:'Train attention toward what went right.',
+    s:['Name 3 things that went okay today.','However small — coffee counts.','For one, why did it happen?','Notice the shift, even if tiny.']},
+  {id:'best',  t:'Best possible self',  m:6, mod:'pos', for:['stuck','lost','low','uncertain'],
+    b:'Write a day in your best-possible future.',
+    s:['Imagine life a few years on, going well.','Write a day in it, in present tense.','Be specific — what are you doing, feeling?','Pick one thread you could pull today.']},
+  {id:'savour',t:'Savouring',           m:3, mod:'pos', for:['grateful','reflective','flat'],
+    b:'Soak fully into one good moment.',
+    s:['Find one pleasant thing, right now.','Slow down and really take it in.','Name what’s good about it.','Let yourself have it, completely.']},
+  {id:'chair', t:'Empty chair',         m:6, mod:'gestalt', for:['angry','grieving','stuck','hurt'],
+    b:'Say the unsaid to an imagined person or part.',
+    s:['Picture them in an empty chair.','Speak aloud what’s gone unsaid.','Then sit in their chair, reply as them.','Close gently; breathe when you’re done.']},
+  {id:'wind',  t:'Wind-down for sleep', m:5, mod:'mind', for:['restless','wired','tired','anxious'],
+    b:'Help the nervous system shift toward rest.',
+    s:['Dim the lights, screens away.','Long exhales, slower than the inhale.','Tense and release each muscle group.','Let the day be unfinished — that’s okay.']},
+];
+
+const MOOD_DATA = [
+  {d:'M',mood:3,sleep:6.5},{d:'T',mood:2,sleep:5.0},{d:'W',mood:2,sleep:4.5},{d:'T',mood:3,sleep:6.0},
+  {d:'F',mood:4,sleep:7.0},{d:'S',mood:4,sleep:8.0},{d:'S',mood:4,sleep:7.5},{d:'M',mood:3,sleep:6.0},
+  {d:'T',mood:2,sleep:5.0},{d:'W',mood:2,sleep:4.5},{d:'T',mood:3,sleep:6.5},{d:'F',mood:4,sleep:7.0},
+  {d:'S',mood:5,sleep:8.0},{d:'S',mood:4,sleep:7.5},
+];
+const MOODS = [
+  {v:1,label:'Rough',color:'var(--care)'},{v:2,label:'Low',color:'var(--clay)'},
+  {v:3,label:'Okay',color:'var(--honey)'},{v:4,label:'Good',color:'var(--sage-mid)'},
+  {v:5,label:'Great',color:'var(--sage)'},
+];
+const FEELINGS = ['anxious','low','overwhelmed','angry','self-critical','stuck','tired','numb','restless','grateful'];
+
+const CRISIS_LINES = [
+  {region:'India',name:'KIRAN (Govt helpline)',num:'1800-599-0019',note:'24/7 · free · multilingual'},
+  {region:'India',name:'Tele-MANAS',num:'14416',note:'24/7 national mental-health line'},
+  {region:'US',name:'Suicide & Crisis Lifeline',num:'988',note:'call or text, 24/7'},
+  {region:'UK & ROI',name:'Samaritans',num:'116 123',note:'free, day or night'},
+];
+const CRISIS_WORDS=['kill myself','want to die','end my life','suicide','suicidal','self harm','self-harm',
+  'hurt myself','don\'t want to be here','no reason to live','better off dead','end it all','can\'t go on','take my life'];
+const flagsCrisis = t => { const s=' '+t.toLowerCase()+' '; return CRISIS_WORDS.some(w=>s.includes(w)); };
+
+/* ----------------------------- state ------------------------------ */
+const S = {
+  onboarded:false, step:0,
+  profile:{stage:null, events:[], name:''},
+  tab:'today',
+  chat:[], crisisFlag:false,
+  checkin:{phase:'mood', mood:null, feels:[]},
+  modFilter:'all', done:[], search:'',
+  keepsakes:[], favorites:[], history:[],   // private reflections, bookmarked tools, real check-ins
+  xp:0, earnedBadges:[], counters:{breaths:0}, currentMood:null,   // rewards + mood aura
+  coach:null, habits:[], sleep:[],   // coach mode, habit tracker, sleep log
+  settings:{ reminders:true, sound:true, photoFeatures:true, shareInsights:false, under18:false,
+             theme:'sage', textSize:1, ageGroup:null, bgArt:true,
+             readableFont:false, reduceMotion:false,
+             soundVol:0.5, speakReplies:false, autoSend:false, voiceLang:'en-US' },
+  openGroups:{ space:true, approaches:false, settings:false, support:false },
+};
+// transient state for the open tool sheet
+let pendingToolId=null, pendingPhoto=null, pendingNote='';
+// keepsake photos only on creative/journaling exercises — and never for under-18 accounts
+const canKeepsake = mod => (mod==='art' || mod==='write') && S.settings.photoFeatures && !S.settings.under18;
+
+/* ---- persistence (works on a hosted/installed app; safely no-ops if blocked) ---- */
+const store = {
+  read(){ try{ const r=localStorage.getItem('sprout.v1'); return r?JSON.parse(r):null; }catch(e){ return null; } },
+  write(o){ try{ localStorage.setItem('sprout.v1', JSON.stringify(o)); }catch(e){ /* quota or sandbox: ignore */ } },
+};
+function saveState(){
+  store.write({ onboarded:S.onboarded, profile:S.profile, settings:S.settings, done:S.done,
+    keepsakes:S.keepsakes, favorites:S.favorites, history:S.history,
+    xp:S.xp, earnedBadges:S.earnedBadges, counters:S.counters, currentMood:S.currentMood,
+    habits:S.habits, sleep:S.sleep });
+}
+function hydrate(){
+  const s=store.read(); if(!s) return;
+  if(typeof s.onboarded==='boolean') S.onboarded=s.onboarded;
+  if(s.profile) S.profile={...S.profile, ...s.profile};
+  if(s.settings) S.settings={...S.settings, ...s.settings};
+  if(Array.isArray(s.done)) S.done=s.done;
+  if(Array.isArray(s.keepsakes)) S.keepsakes=s.keepsakes;
+  if(Array.isArray(s.favorites)) S.favorites=s.favorites;
+  if(Array.isArray(s.history)) S.history=s.history;
+  if(typeof s.xp==='number') S.xp=s.xp;
+  if(Array.isArray(s.earnedBadges)) S.earnedBadges=s.earnedBadges;
+  if(s.counters) S.counters={...S.counters, ...s.counters};
+  if(typeof s.currentMood==='number') S.currentMood=s.currentMood;
+  if(Array.isArray(s.habits)) S.habits=s.habits;
+  if(Array.isArray(s.sleep)) S.sleep=s.sleep;
+}
+
+/* =============================== THEMES =============================== */
+const THEMES = {
+  sage:    {label:'Sage', dark:false, swatch:['#4F7A6B','#C8714E','#F4EFE7'],
+    v:{paper:'#F4EFE7',paper2:'#FBF8F2',card:'#FFFFFF',ink:'#2B2620','ink-soft':'#7A6F61','ink-faint':'#A99F90',line:'#E7DECF',sage:'#4F7A6B','sage-mid':'#5E8C7C','sage-tint':'#E7EFE9',clay:'#C8714E','clay-tint':'#F6E7DD',dusk:'#5C5A7A','dusk-tint':'#E9E8F0',honey:'#C0892B','honey-tint':'#F3E8CE',care:'#A8412C','care-tint':'#F7E4DD'}},
+  midnight:{label:'Midnight', dark:true, swatch:['#6FB8A2','#9A93D6','#1C1A28'],
+    v:{paper:'#1C1A28',paper2:'#242234',card:'#2A2740',ink:'#ECEAF6','ink-soft':'#ACA7C4','ink-faint':'#6E6A88',line:'#3A3754',sage:'#6FB8A2','sage-mid':'#5FA892','sage-tint':'#23362F',clay:'#E0916B','clay-tint':'#3A2C28',dusk:'#9A93D6','dusk-tint':'#2C2A47',honey:'#DCB458','honey-tint':'#3A3320',care:'#E5705A','care-tint':'#3A2622'}},
+  blossom: {label:'Blossom', dark:false, swatch:['#C76B7E','#E08A6A','#FBF1F0'],
+    v:{paper:'#FBF1F0',paper2:'#FFF7F6',card:'#FFFFFF',ink:'#3B2A2C','ink-soft':'#8A6E70','ink-faint':'#C3A6A8',line:'#F1DEDD',sage:'#C76B7E','sage-mid':'#D17F90','sage-tint':'#FBE6EA',clay:'#E08A6A','clay-tint':'#FBE7DD',dusk:'#8E7BB0','dusk-tint':'#EFEAF5',honey:'#D2A24E','honey-tint':'#F7EBD2',care:'#B5453A','care-tint':'#F8E2DF'}},
+  ocean:   {label:'Ocean', dark:false, swatch:['#2E8B8F','#4F6B9A','#EEF4F5'],
+    v:{paper:'#EEF4F5',paper2:'#F7FAFB',card:'#FFFFFF',ink:'#1E2C30','ink-soft':'#5E727A','ink-faint':'#9FB1B6',line:'#DAE6E8',sage:'#2E8B8F','sage-mid':'#3C9DA1','sage-tint':'#DFEFEF',clay:'#E0875E','clay-tint':'#FAE8DE',dusk:'#4F6B9A','dusk-tint':'#E4EAF3',honey:'#C99A3F','honey-tint':'#F4ECD6',care:'#B14A36','care-tint':'#F7E3DD'}},
+  sunrise: {label:'Sunrise', dark:false, swatch:['#E27A4D','#D9476A','#FCF2EA'],
+    v:{paper:'#FCF2EA',paper2:'#FFF8F2',card:'#FFFFFF',ink:'#322420','ink-soft':'#876E62','ink-faint':'#C2A695',line:'#F1E0D2',sage:'#E27A4D','sage-mid':'#E98C61','sage-tint':'#FBE6DA',clay:'#D9476A','clay-tint':'#FAE0E6',dusk:'#6C63B5','dusk-tint':'#ECEAF6',honey:'#E0A22E','honey-tint':'#F8EBCF',care:'#BC4030','care-tint':'#F8E2DD'}},
+  lavender:{label:'Lavender', dark:false, swatch:['#7A6FC4','#C77FA8','#F2F0F8'],
+    v:{paper:'#F2F0F8',paper2:'#FAF9FD',card:'#FFFFFF',ink:'#2A2636','ink-soft':'#6F6A85','ink-faint':'#ABA5C0',line:'#E5E1F0',sage:'#7A6FC4','sage-mid':'#8B81CE','sage-tint':'#EAE6F6',clay:'#C77FA8','clay-tint':'#F6E6EF',dusk:'#5C76B8','dusk-tint':'#E6EBF5',honey:'#C79A52','honey-tint':'#F4ECD7',care:'#AE4444','care-tint':'#F4E0E0'}},
+  forest:  {label:'Forest', dark:false, swatch:['#3E7A3F','#C07A45','#EFF1EA'],
+    v:{paper:'#EFF1EA',paper2:'#F7F9F2',card:'#FFFFFF',ink:'#232A20','ink-soft':'#5F6A55','ink-faint':'#9DA890',line:'#E0E5D6',sage:'#3E7A3F','sage-mid':'#4D8A4E','sage-tint':'#E4EFE2',clay:'#C07A45','clay-tint':'#F4E8DB',dusk:'#4F7A6B','dusk-tint':'#E5EFEB',honey:'#B79434','honey-tint':'#F1ECD2',care:'#A8492E','care-tint':'#F6E3DC'}},
+  contrast:{label:'Contrast', dark:false, swatch:['#1F6F5C','#3B3F8F','#FFFFFF'],
+    v:{paper:'#FFFFFF',paper2:'#F4F4F4',card:'#FFFFFF',ink:'#141414','ink-soft':'#44464A','ink-faint':'#6A6C70',line:'#CFCFCF',sage:'#1F6F5C','sage-mid':'#2A7E6A','sage-tint':'#DDEDE8',clay:'#B4502A','clay-tint':'#F3E2D9',dusk:'#3B3F8F','dusk-tint':'#E2E3F2',honey:'#8A6300','honey-tint':'#F0E6CC',care:'#9E2B1E','care-tint':'#F6DAD5'}},
+};
+function applyTheme(id){
+  const t=(THEMES[id]||THEMES.sage).v, root=document.documentElement;
+  Object.keys(t).forEach(k=>root.style.setProperty('--'+k, t[k]));
+  const mt=document.querySelector('meta[name=theme-color]'); if(mt) mt.setAttribute('content', t.paper);
+}
+// apply theme + text size to the screen that's already on-screen (no full re-render needed)
+function applyDisplay(){
+  applyTheme(S.settings.theme);
+  const root=document.documentElement;
+  root.style.setProperty('--sans', S.settings.readableFont
+    ? "'Atkinson Hyperlegible','Inter',system-ui,sans-serif"
+    : "'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif");
+  root.classList.toggle('readable-font', !!S.settings.readableFont);
+  root.classList.toggle('reduce-motion', !!S.settings.reduceMotion);
+  const sc=document.getElementById('scroll'); if(sc) sc.style.zoom=String(S.settings.textSize||1);
+  document.querySelectorAll('.sheet,.drawer').forEach(el=>el.style.zoom=String(S.settings.textSize||1));
+}
+
+/* ---------------------- mood-reactive background ---------------------- */
+// soothing colour per mood (low moods get calm tones, never an alarming red wash)
+const MOOD_AURA = {1:'var(--clay)', 2:'var(--dusk)', 3:'var(--honey)', 4:'var(--sage-mid)', 5:'var(--sage)'};
+function moodAuraNode(){
+  if(!S.settings.bgArt || !S.currentMood) return null;
+  const col = MOOD_AURA[S.currentMood] || 'var(--sage)';
+  return node(`<div id="moodaura" style="background:
+    radial-gradient(120% 80% at 50% -10%, ${col} 0%, transparent 55%),
+    radial-gradient(90% 60% at 100% 108%, ${col} 0%, transparent 60%);
+    opacity:.16;"></div>`);
+}
+
+/* ----------------------------- rewards ------------------------------- */
+const LEVELS = [
+  {name:'Seedling', min:0},
+  {name:'Sprout',   min:60},
+  {name:'Sapling',  min:150},
+  {name:'Bud',      min:300},
+  {name:'Bloom',    min:500},
+  {name:'Evergreen',min:800},
+  {name:'Old Oak',  min:1200},
+];
+function levelIndex(xp){ let i=0; for(let k=0;k<LEVELS.length;k++){ if(xp>=LEVELS[k].min) i=k; } return i; }
+function levelInfo(xp){
+  const i=levelIndex(xp), cur=LEVELS[i], next=LEVELS[i+1];
+  const into = xp - cur.min;
+  const span = next ? next.min - cur.min : 1;
+  return {i, name:cur.name, next:next?next.name:null, pct: next? Math.min(into/span,1) : 1, toNext: next? next.min - xp : 0};
+}
+function approachesTried(){ return new Set(S.done.map(id=>{const t=TOOLS.find(x=>x.id===id); return t&&t.mod;}).filter(Boolean)).size; }
+const BADGES = [
+  {id:'first_checkin', name:'First step',     icon:'plus',     desc:'Your first check-in.',        has:()=>S.history.length>=1},
+  {id:'first_tool',    name:'First practice', icon:'leaf',     desc:'Completed a practice.',        has:()=>S.done.length>=1},
+  {id:'reflector',     name:'Reflector',      icon:'pen',      desc:'Saved a reflection.',          has:()=>S.keepsakes.length>=1},
+  {id:'breather',      name:'Deep breaths',   icon:'wind',     desc:'Used a breathing space.',      has:()=>(S.counters.breaths||0)>=1},
+  {id:'explorer',      name:'Explorer',       icon:'compass',  desc:'Tried 5 approaches.',          has:()=>approachesTried()>=5},
+  {id:'curator',       name:'Curator',        icon:'heart',    desc:'Saved 5 favourites.',          has:()=>S.favorites.length>=5},
+  {id:'ten_practice',  name:'Ten tended',     icon:'check',    desc:'10 practices done.',           has:()=>S.done.length>=10},
+  {id:'week_checkin',  name:'A caring week',  icon:'trending', desc:'7 check-ins logged.',          has:()=>S.history.length>=7},
+  {id:'bloomer',       name:'In bloom',       icon:'sun',      desc:'Reached the Bloom level.',     has:()=>levelIndex(S.xp)>=4},
+];
+const XP = {checkin:10, practice:15, reflection:20, breath:8};
+
+function confetti(){
+  if(S.settings.reduceMotion) return;
+  const cols=['var(--sage)','var(--clay)','var(--dusk)','var(--honey)','var(--sage-mid)'];
+  for(let i=0;i<26;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    c.style.left=(Math.random()*100)+'vw';
+    c.style.background=cols[i%cols.length];
+    c.style.animationDelay=(Math.random()*.25)+'s';
+    c.style.transform='translateY(-10vh)';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 1900);
+  }
+}
+let toastQ=[];
+function toast(msg, icon){
+  const t=document.createElement('div'); t.className='toast';
+  t.innerHTML=`${icon?svg(icon,17,'var(--paper)'):''}<span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
+function celebrate(msg, icon){ toast(msg, icon||'sparkles'); confetti(); }
+
+function grantXP(n){
+  const before=levelIndex(S.xp);
+  S.xp += n;
+  const after=levelIndex(S.xp);
+  // newly-earned badges
+  BADGES.forEach(b=>{ if(!S.earnedBadges.includes(b.id) && b.has()){ S.earnedBadges.push(b.id); setTimeout(()=>celebrate('Badge earned · '+b.name,'sparkles'), 120); } });
+  if(after>before){ setTimeout(()=>celebrate(`Level up! You’re a ${LEVELS[after].name}`,'sun'), 60); }
+  saveState();
+}
+
+/* ---------------- age-tuned background artwork (watermarks) ---------------- */
+const LEAF_WM = 'M0,9 A7,7 0 0,1 -1.2,-4.9 C4.5,-6 6,-6.5 8,-9 c1,2 2,4.2 2,8 0,5.5 -4.8,10 -10,10 Z';
+const WM_ART = {
+  // teens — playful cartoon doodles, colourful
+  teen:{size:150, op:0.14, art:`
+    <g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M34,40 C35.4,45.8 37.2,47.6 43,49 C37.2,50.4 35.4,52.2 34,58 C32.6,52.2 30.8,50.4 25,49 C30.8,47.6 32.6,45.8 34,40 Z" style="fill:var(--clay);stroke:none"/>
+      <path d="M118,40 C115.8,36 109,35 109,30.5 C109,27 113.5,26 118,30.5 C122.5,26 127,27 127,30.5 C127,35 120.2,36 118,40 Z" style="stroke:var(--clay)"/>
+      <circle cx="102" cy="98" r="11" style="stroke:var(--sage)"/>
+      <circle cx="98" cy="95" r="1.4" style="fill:var(--sage);stroke:none"/>
+      <circle cx="106" cy="95" r="1.4" style="fill:var(--sage);stroke:none"/>
+      <path d="M97,101 Q102,105 107,101" style="stroke:var(--sage)"/>
+      <path d="M16,116 q6,-8 12,0 q6,8 12,0 q6,-8 12,0" style="stroke:var(--honey)"/>
+      <path d="M62,26 a6,6 0 0,1 3,-11 a8,8 0 0,1 15,2 a5,5 0 0,1 -1,9 Z" style="stroke:var(--dusk)"/>
+      <path d="M132,58 l1.8,4 l4,1.8 l-4,1.8 l-1.8,4 l-1.8,-4 l-4,-1.8 l4,-1.8 Z" style="fill:var(--sage);stroke:none"/>
+      <circle cx="138" cy="124" r="2.2" style="fill:var(--dusk);stroke:none"/>
+      <circle cx="20" cy="70" r="1.8" style="fill:var(--honey);stroke:none"/>
+    </g>`},
+  // young adults — geometric energy, arcs + dots
+  young:{size:150, op:0.11, art:`
+    <g fill="none" stroke-width="2.2" stroke-linecap="round">
+      <path d="M14,64 A50,50 0 0,1 64,14" style="stroke:var(--sage)"/>
+      <path d="M14,44 A30,30 0 0,1 44,14" style="stroke:var(--clay)"/>
+      <circle cx="112" cy="40" r="20" style="stroke:var(--dusk)"/>
+      <path d="M100,118 l7,0 M103.5,114.5 l0,7" style="stroke:var(--honey)"/>
+      <path d="M38,110 l7,0 M41.5,106.5 l0,7" style="stroke:var(--sage)"/>
+      <path d="M118,136 l7,-12 l7,12 Z" style="stroke:var(--honey)"/>
+      <circle cx="132" cy="98" r="2.2" style="fill:var(--clay);stroke:none"/>
+      <circle cx="82" cy="72" r="2.2" style="fill:var(--sage);stroke:none"/>
+      <circle cx="70" cy="132" r="2" style="fill:var(--dusk);stroke:none"/>
+    </g>`},
+  // adults — calm topographic contour lines
+  adult:{size:160, op:0.08, art:`
+    <g fill="none" stroke-width="1.6" style="stroke:var(--ink-faint)">
+      <path d="M80,26 C120,26 142,58 128,92 C116,120 74,128 46,106 C22,88 34,40 80,26 Z"/>
+      <path d="M80,44 C110,44 124,66 114,90 C106,110 74,116 54,100 C36,86 44,54 80,44 Z"/>
+      <path d="M80,62 C98,62 108,76 102,90 C96,102 72,104 62,94 C52,84 60,64 80,62 Z"/>
+    </g>`},
+  // older adults — elegant botanical vine + blossom
+  older:{size:160, op:0.11, art:`
+    <g fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--sage)">
+      <path d="M24,152 C44,113 32,84 62,60 C86,41 82,22 100,10"/>
+      <path d="M46,96 c-10,-4 -12,-14 -4,-20 c8,4 10,14 4,20 Z" style="fill:var(--sage);stroke:none;opacity:.55"/>
+      <path d="M62,70 c10,-4 12,-14 4,-20 c-8,4 -10,14 -4,20 Z" style="fill:var(--sage);stroke:none;opacity:.55"/>
+      <path d="M40,122 c-10,-3 -13,-12 -6,-19 c8,3 11,12 6,19 Z" style="fill:var(--sage);stroke:none;opacity:.55"/>
+      <g transform="translate(102,10)" style="stroke:var(--clay)">
+        <ellipse cx="0" cy="-6" rx="3.4" ry="6"/>
+        <ellipse cx="6" cy="-2" rx="6" ry="3.4"/>
+        <ellipse cx="4" cy="6.5" rx="3.6" ry="6" transform="rotate(32 4 6.5)"/>
+        <ellipse cx="-4" cy="6.5" rx="3.6" ry="6" transform="rotate(-32 -4 6.5)"/>
+        <ellipse cx="-6" cy="-2" rx="6" ry="3.4"/>
+        <circle cx="0" cy="0" r="2.2" style="fill:var(--honey);stroke:none"/>
+      </g>
+    </g>`},
+  // default (no age set) — soft scattered leaves, the brand motif
+  default:{size:150, op:0.10, art:`
+    <g fill="none">
+      <g transform="translate(30,34) rotate(-14) scale(1.1)"><path d="${LEAF_WM}" style="fill:var(--sage);opacity:.55;stroke:none"/></g>
+      <g transform="translate(112,92) rotate(158) scale(1.2)"><path d="${LEAF_WM}" style="fill:var(--sage);opacity:.5;stroke:none"/></g>
+      <g transform="translate(122,30) rotate(42)"><path d="${LEAF_WM}" style="fill:var(--clay);opacity:.4;stroke:none"/></g>
+      <g transform="translate(40,120) rotate(-150) scale(.95)"><path d="${LEAF_WM}" style="fill:var(--sage);opacity:.4;stroke:none"/></g>
+    </g>`},
+};
+function watermarkNode(){
+  if(!S.settings.bgArt) return null;
+  const c = WM_ART[S.settings.ageGroup] || WM_ART.default;
+  return node(`<svg id="watermark" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;color:var(--ink);opacity:${c.op};">
+    <defs><pattern id="wmpat" width="${c.size}" height="${c.size}" patternUnits="userSpaceOnUse">${c.art}</pattern></defs>
+    <rect width="100%" height="100%" fill="url(#wmpat)"/>
+  </svg>`);
+}
+
+const AGE_GROUPS = [
+  {id:'teen',  label:'Teen · 13–17',       theme:'sunrise',  text:1,    icon:'grad',    note:'Warmer and more casual, like a steady older friend.'},
+  {id:'young', label:'Young adult · 18–25', theme:'ocean',    text:1,    icon:'compass', note:'Real and grounded, with a little lightness.'},
+  {id:'adult', label:'Adult · 26–59',       theme:'sage',     text:1,    icon:'user',    note:'Calm, respectful and practical.'},
+  {id:'older', label:'Older adult · 60+',   theme:'contrast', text:1.15, icon:'sun',     note:'Gentle, clear and unhurried — with larger text and higher contrast.'},
+];
+
+const AFFIRMATIONS = [
+  'You don’t have to have it all figured out today.',
+  'Small steps still move you forward.',
+  'Your feelings are allowed to be here.',
+  'You’ve made it through every hard day so far.',
+  'Rest is productive too.',
+  'You are more than your worst moment.',
+  'Progress isn’t a straight line — and that’s okay.',
+  'Being kind to yourself isn’t weakness.',
+  'You’re allowed to begin again, right now.',
+  'However you feel, it won’t last forever.',
+  'You’re doing better than the voice in your head says.',
+  'One breath at a time is enough.',
+];
+const todayAffirmation = () => AFFIRMATIONS[Math.floor(Date.now()/86400000) % AFFIRMATIONS.length];
+
+/* The full vision: 100 features. Live ones are built in this prototype. */
+const AUD = {E:'Everyone',T:'Teens',Y:'Young adults',A:'Adults',P:'Parents',C:'Couples',O:'Older adults'};
+const FEATURES = [
+  {n:'AI companion (Lumi)',a:'E',c:'Companion',live:1},
+  {n:'Crisis language detection',a:'E',c:'Safety',live:1},
+  {n:'One-tap crisis helplines',a:'E',c:'Safety',live:1},
+  {n:'“Get help now” always visible',a:'E',c:'Safety',live:1},
+  {n:'Under-18 photo safety gate',a:'T',c:'Safety',live:1},
+  {n:'Daily mood check-in',a:'E',c:'Check-ins',live:1},
+  {n:'Feeling tags',a:'E',c:'Check-ins',live:1},
+  {n:'Closed-loop suggestions',a:'E',c:'Check-ins',live:1},
+  {n:'Recent check-in history',a:'E',c:'Check-ins',live:1},
+  {n:'Therapy toolkit · 34 practices',a:'E',c:'Toolkit',live:1},
+  {n:'13 therapeutic approaches',a:'E',c:'Toolkit',live:1},
+  {n:'CBT exercises',a:'E',c:'Toolkit',live:1},
+  {n:'ACT exercises',a:'E',c:'Toolkit',live:1},
+  {n:'DBT skills',a:'E',c:'Toolkit',live:1},
+  {n:'Mindfulness & breathwork',a:'E',c:'Toolkit',live:1},
+  {n:'Art therapy',a:'E',c:'Toolkit',live:1},
+  {n:'Music therapy',a:'E',c:'Toolkit',live:1},
+  {n:'NLP techniques',a:'Y',c:'Toolkit',live:1},
+  {n:'Narrative therapy',a:'E',c:'Toolkit',live:1},
+  {n:'Somatic practices',a:'E',c:'Toolkit',live:1},
+  {n:'Expressive writing',a:'E',c:'Toolkit',live:1},
+  {n:'Positive psychology',a:'E',c:'Toolkit',live:1},
+  {n:'Gestalt (empty chair)',a:'E',c:'Toolkit',live:1},
+  {n:'Guided breathing animation',a:'E',c:'Toolkit',live:1},
+  {n:'Toolkit search',a:'E',c:'Toolkit',live:1},
+  {n:'Favourite exercises',a:'E',c:'Toolkit',live:1},
+  {n:'Pattern insights (sleep·mood·movement)',a:'E',c:'Insights',live:1},
+  {n:'Mood chart',a:'E',c:'Insights',live:1},
+  {n:'Tiny experiments',a:'E',c:'Insights',live:1},
+  {n:'Private reflections',a:'E',c:'Growth',live:1},
+  {n:'Photo keepsakes (art & journaling)',a:'E',c:'Growth',live:1},
+  {n:'Gentle Lumi reflection on your work',a:'E',c:'Growth',live:1},
+  {n:'Daily affirmation',a:'E',c:'Growth',live:1},
+  {n:'Gentle streak (no guilt)',a:'E',c:'Growth',live:1},
+  {n:'Growth ring',a:'E',c:'Growth',live:1},
+  {n:'Life-stage personalisation',a:'E',c:'Personalise',live:1},
+  {n:'“What’s going on” life events',a:'E',c:'Personalise',live:1},
+  {n:'Smallest-next-step focus',a:'E',c:'Personalise',live:1},
+  {n:'8 themes',a:'E',c:'Personalise',live:1},
+  {n:'Dark mode (Midnight)',a:'E',c:'Personalise',live:1},
+  {n:'Age-group profiles',a:'E',c:'Personalise',live:1},
+  {n:'Larger text & display size',a:'O',c:'Personalise',live:1},
+  {n:'Profile',a:'E',c:'Personalise',live:1},
+  {n:'Settings',a:'E',c:'Personalise',live:1},
+  {n:'Privacy & data controls',a:'E',c:'Privacy',live:1},
+  {n:'Export my data',a:'E',c:'Privacy',live:1},
+  {n:'Delete my data',a:'E',c:'Privacy',live:1},
+  {n:'On-device storage & offline',a:'E',c:'Privacy',live:1},
+  {n:'No ads, no selling data',a:'E',c:'Privacy',live:1},
+  {n:'Installable app (PWA)',a:'E',c:'Personalise',live:1},
+  {n:'Voice conversations with Lumi',a:'E',c:'Companion',live:0},
+  {n:'Voice venting / talk-to-journal',a:'E',c:'Companion',live:0},
+  {n:'Emotion detection from text',a:'E',c:'Companion',live:0},
+  {n:'Weekly mood report',a:'E',c:'Insights',live:0},
+  {n:'Monthly mood report',a:'E',c:'Insights',live:0},
+  {n:'Burnout early-warning',a:'A',c:'Insights',live:0},
+  {n:'Sleep coach & sleep score',a:'E',c:'Growth',live:0},
+  {n:'Habit builder (water, walk, meditate)',a:'E',c:'Growth',live:0},
+  {n:'Guided meditation library',a:'E',c:'Toolkit',live:0},
+  {n:'Soundscapes for focus & sleep',a:'E',c:'Toolkit',live:0},
+  {n:'Career coach',a:'Y',c:'Growth',live:0},
+  {n:'Mock interview practice',a:'Y',c:'Growth',live:0},
+  {n:'Résumé review',a:'Y',c:'Growth',live:0},
+  {n:'Confidence training',a:'T',c:'Growth',live:0},
+  {n:'Exam-stress programme',a:'T',c:'Growth',live:0},
+  {n:'Study focus timer',a:'T',c:'Growth',live:0},
+  {n:'Social-anxiety practice',a:'T',c:'Growth',live:0},
+  {n:'Bullying support coach',a:'T',c:'Safety',live:0},
+  {n:'Relationship daily check-in',a:'C',c:'Companion',live:0},
+  {n:'Conflict cool-down coach',a:'C',c:'Toolkit',live:0},
+  {n:'Love-language insights',a:'C',c:'Insights',live:0},
+  {n:'Couple shared goals',a:'C',c:'Community',live:0},
+  {n:'Parenting coach',a:'P',c:'Companion',live:0},
+  {n:'Child-behaviour guidance',a:'P',c:'Growth',live:0},
+  {n:'Parent self-compassion track',a:'P',c:'Growth',live:0},
+  {n:'Co-parenting planner',a:'P',c:'Growth',live:0},
+  {n:'New-baby sleep survival',a:'P',c:'Growth',live:0},
+  {n:'Grief companion',a:'O',c:'Companion',live:0},
+  {n:'Loneliness check-ins',a:'O',c:'Companion',live:0},
+  {n:'Memory & cognition games',a:'O',c:'Growth',live:0},
+  {n:'Medication reminders',a:'O',c:'Growth',live:0},
+  {n:'Large-button simple mode',a:'O',c:'Personalise',live:0},
+  {n:'Family check-in sharing (opt-in)',a:'O',c:'Community',live:0},
+  {n:'Reminisce journaling',a:'O',c:'Growth',live:0},
+  {n:'Anonymous peer support circles',a:'E',c:'Community',live:0},
+  {n:'Moderated group challenges',a:'E',c:'Community',live:0},
+  {n:'Find a licensed professional',a:'E',c:'Professional',live:0},
+  {n:'Book a therapist session',a:'E',c:'Professional',live:0},
+  {n:'Share progress with your therapist',a:'E',c:'Professional',live:0},
+  {n:'Therapist notes & homework',a:'E',c:'Professional',live:0},
+  {n:'Insurance / EAP integration',a:'A',c:'Professional',live:0},
+  {n:'School & campus wellness mode',a:'T',c:'Professional',live:0},
+  {n:'Workplace wellness mode',a:'A',c:'Professional',live:0},
+  {n:'Multi-language support',a:'E',c:'Personalise',live:0},
+  {n:'Screen-reader & dyslexia font',a:'E',c:'Personalise',live:0},
+  {n:'Localised crisis resources by country',a:'E',c:'Safety',live:0},
+  {n:'Reminder & nudge scheduling',a:'E',c:'Personalise',live:0},
+  {n:'Home-screen widgets',a:'E',c:'Personalise',live:0},
+  {n:'Wearable sync (sleep, HRV)',a:'E',c:'Insights',live:0},
+  {n:'End-to-end encryption & sync',a:'E',c:'Privacy',live:0},
+];
+// features now built and live in this build:
+['Voice conversations with Lumi','Voice venting / talk-to-journal','Weekly mood report','Monthly mood report',
+ 'Burnout early-warning','Sleep coach & sleep score','Habit builder (water, walk, meditate)','Guided meditation library',
+ 'Soundscapes for focus & sleep','Career coach','Mock interview practice','Résumé review','Confidence training',
+ 'Exam-stress programme','Study focus timer','Social-anxiety practice','Bullying support coach','Relationship daily check-in',
+ 'Conflict cool-down coach','Parenting coach','Child-behaviour guidance','Parent self-compassion track','Co-parenting planner',
+ 'New-baby sleep survival','Grief companion','Loneliness check-ins'
+].forEach(nm=>{ const f=FEATURES.find(x=>x.n===nm); if(f) f.live=1; });
+const $ = sel => document.querySelector(sel);
+const phone = $('#phone');
+const node = html => { const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; };
+
+/* ----------------------------- render ----------------------------- */
+function render(){
+  saveState();
+  applyDisplay();
+  phone.innerHTML='';
+  if(!S.onboarded){ phone.appendChild(renderOnboarding()); return; }
+  const ma=moodAuraNode(); if(ma) phone.appendChild(ma);
+  const wm=watermarkNode(); if(wm) phone.appendChild(wm);
+  phone.appendChild(renderTopbar());
+  const scroll = node('<div class="scroll" id="scroll"></div>');
+  scroll.style.zoom = String(S.settings.textSize||1);
+  const map = {today:renderToday, companion:renderCompanion, checkin:renderCheckin, toolkit:renderToolkit, insights:renderInsights, profile:renderProfile, features:renderFeatures, rewards:renderRewards, more:renderMore, habits:renderHabits, reports:renderReports};
+  scroll.appendChild(map[S.tab]());
+  phone.appendChild(scroll);
+  phone.appendChild(renderTabbar());
+  if(S.tab==='companion') paintChat();
+}
+
+/* -------------------------- onboarding ---------------------------- */
+function renderOnboarding(){
+  const wrap = node('<div style="height:100%;display:flex;flex-direction:column;padding:34px 24px 24px;"></div>');
+  const prog = node('<div style="display:flex;gap:6px;margin-bottom:30px;"></div>');
+  [0,1,2].forEach(i=>prog.appendChild(node(`<div style="height:4px;flex:1;border-radius:99px;background:${i<=S.step?'var(--sage)':'var(--line)'}"></div>`)));
+  wrap.appendChild(prog);
+
+  if(S.step===0){
+    wrap.appendChild(node(`
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div style="width:54px;height:54px;border-radius:18px;background:var(--sage-tint);display:grid;place-items:center;margin-bottom:22px;">${svg('leaf',28,'var(--sage)')}</div>
+        <div class="h1" style="font-size:38px;line-height:1.05;">Hello. I’m <span style="color:var(--sage)">Lumi</span>.</div>
+        <p style="font-family:var(--serif);font-size:20px;color:var(--ink-soft);margin-top:14px;line-height:1.4;">
+          Most apps treat everyone the same. I start by learning where you actually are in life — then I meet you there.</p>
+        <div style="margin-top:22px;padding:14px;border-radius:18px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:10px;">
+          ${svg('shield',18,'var(--ink-soft)')}
+          <span style="font-size:13px;color:var(--ink-soft);line-height:1.45;">I’m a companion and coach — not a therapist or emergency service. For anything serious, I’ll help you reach a real person.</span>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary btn-block" onclick="App.step(1)">Let’s begin ${svg('chevR',16,'#fff')}</button>
+      </div>`));
+  }
+
+  if(S.step===1){
+    const grid = node('<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>');
+    STAGES.forEach(s=>{
+      const on = S.profile.stage===s.id;
+      grid.appendChild(node(`
+        <button class="tap" onclick="App.pickStage('${s.id}')" style="text-align:left;border-radius:18px;padding:14px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage-tint)':'var(--card)'};">
+          ${svg(s.icon,22,on?'var(--sage)':'var(--ink-soft)')}
+          <div style="font-size:14px;font-weight:600;margin-top:10px;">${s.label}</div>
+          <div style="font-size:11.5px;color:var(--ink-faint);margin-top:3px;">${s.hint}</div>
+        </button>`));
+    });
+    wrap.appendChild(node(`<div class="eyebrow">Step 1 of 3</div>`));
+    wrap.appendChild(node(`<div class="h1" style="font-size:28px;margin-top:8px;line-height:1.1;">Where are you in life right now?</div>`));
+    const sc = node('<div style="flex:1;overflow-y:auto;margin-top:18px;"></div>'); sc.appendChild(grid); wrap.appendChild(sc);
+    const nav = node('<div style="display:flex;gap:10px;margin-top:14px;"></div>');
+    nav.appendChild(node(`<button class="btn btn-ghost" onclick="App.step(0)">${svg('chevL',16)}</button>`));
+    nav.appendChild(node(`<button class="btn btn-primary btn-block" ${S.profile.stage?'':'disabled'} onclick="App.step(2)">Continue</button>`));
+    wrap.appendChild(nav);
+  }
+
+  if(S.step===2){
+    wrap.appendChild(node(`<div class="eyebrow">Step 2 of 3</div>`));
+    wrap.appendChild(node(`<div class="h1" style="font-size:28px;margin-top:8px;line-height:1.1;">What’s going on at the moment?</div>`));
+    wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:8px;">Pick any that fit. This shapes what I show you — change it anytime.</div>`));
+    const sc = node('<div style="flex:1;overflow-y:auto;margin-top:16px;"></div>');
+    const chips = node('<div style="display:flex;flex-wrap:wrap;gap:9px;"></div>');
+    EVENTS.forEach(e=>{
+      const on = S.profile.events.includes(e);
+      chips.appendChild(node(`<button class="pill" onclick="App.toggleEvent('${e.replace(/'/g,"\\'")}')" style="${on?'border-color:var(--clay);background:var(--clay-tint);color:var(--clay);font-weight:600;':''}">${on?svg('check',13,'var(--clay)'):''} ${e}</button>`));
+    });
+    sc.appendChild(chips); wrap.appendChild(sc);
+    wrap.appendChild(node(`<input id="nameInput" value="${S.profile.name}" placeholder="What should I call you? (optional)" style="width:100%;padding:13px 16px;border-radius:16px;font-size:15px;margin-top:14px;" />`));
+    const nav = node('<div style="display:flex;gap:10px;margin-top:14px;"></div>');
+    nav.appendChild(node(`<button class="btn btn-ghost" onclick="App.step(1)">${svg('chevL',16)}</button>`));
+    nav.appendChild(node(`<button class="btn btn-clay btn-block" onclick="App.finish()">Enter Sprout</button>`));
+    wrap.appendChild(nav);
+  }
+  return wrap;
+}
+
+/* ---------------------------- chrome ------------------------------ */
+function renderTopbar(){
+  return node(`
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="icon-btn" aria-label="Menu" onclick="App.openMenu()">${svg('menu',22,'var(--ink)')}</button>
+        <div class="brand"><div class="logo">${svg('leaf',16,'#fff')}</div><span class="name">Sprout</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="help-btn tap" onclick="App.openCrisis()">${svg('phone',13)} Get help</button>
+        <button class="icon-btn" aria-label="Voice" onclick="App.openVoice()">${svg('mic',20,'var(--ink-soft)')}</button>
+        <button class="icon-btn" aria-label="More" onclick="App.openKebab()">${dots(20,'var(--ink-soft)')}</button>
+      </div>
+    </div>`);
+}
+function renderTabbar(){
+  const items=[
+    {id:'today',label:'Today',icon:'sun'},
+    {id:'companion',label:'Lumi',icon:'message'},
+    {id:'checkin',label:'Check in',icon:'plus',center:true},
+    {id:'toolkit',label:'Toolkit',icon:'book'},
+    {id:'insights',label:'Patterns',icon:'trending'},
+  ];
+  const bar = node('<div class="tabbar"></div>');
+  items.forEach(it=>{
+    const on=S.tab===it.id;
+    if(it.center){
+      bar.appendChild(node(`<button class="tab center tap" onclick="App.go('${it.id}')"><div class="fab">${svg(it.icon,24,'#fff')}</div><span style="color:${on?'var(--clay)':'var(--ink-soft)'};font-weight:600;">${it.label}</span></button>`));
+    } else {
+      bar.appendChild(node(`<button class="tab" onclick="App.go('${it.id}')">${svg(it.icon,21,on?'var(--sage)':'var(--ink-faint)')}<span style="color:${on?'var(--sage)':'var(--ink-faint)'};font-weight:${on?700:500};">${it.label}</span></button>`));
+    }
+  });
+  return bar;
+}
+
+/* ----------------------------- TODAY ------------------------------ */
+function focusFor(p){
+  const e=p.events, s=p.stage;
+  if(e.includes('Exam pressure')||s==='student') return {t:'Steady nerves before they steady you',b:'Exam stress feeds on a racing body. We’ll work the body first, then the thoughts.',tool:'box'};
+  if(e.includes('A breakup')||s==='trans') return {t:'Grief comes in waves — you don’t have to swim',b:'Some days are heavier. The aim isn’t to feel fine, it’s to feel held while it passes.',tool:'letter'};
+  if(e.includes('Burnt out')||(s==='work'&&e.includes('Sleep is rough'))) return {t:'Burnout isn’t weakness, it’s a signal',b:'Let’s protect a little energy today instead of spending the last of it.',tool:'label'};
+  if(e.includes('A new baby')||s==='parent') return {t:'You’re doing more than you can see',b:'On no sleep, “good enough” is the goal. Be as kind to yourself as you are to them.',tool:'soothe'};
+  if(e.includes('Conflict at home')||s==='couple') return {t:'Connection over being right',b:'When things heat up, a pause protects the relationship more than the perfect comeback.',tool:'cooldown'};
+  if(e.includes('Job hunting')||s==='jobless') return {t:'Rejection is redirection, not a verdict on you',b:'The search is a numbers game your self-worth shouldn’t have to play. One step today.',tool:'activate'};
+  if(e.includes('Overthinking everything')) return {t:'You can’t think your way out of overthinking',b:'Let’s give the loop somewhere to go, gently, instead of wrestling it.',tool:'leaves'};
+  return {t:'A quiet check-in is enough',b:'You don’t need a reason to tend to yourself. Let’s see how today’s sitting with you.',tool:'three'};
+}
+function ringSvg(v){
+  const max=3, pct=Math.min(v/max,1), R=30, cx=38, cy=38, circ=2*Math.PI*R;
+  return `<svg width="76" height="76"><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--line)" stroke-width="7"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--sage)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}" transform="rotate(-90 ${cx} ${cy})"/></svg>`;
+}
+function renderToday(){
+  const p=S.profile, hour=new Date().getHours();
+  const greet = hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  const name = p.name?`, ${p.name}`:'';
+  const f=focusFor(p), ft=TOOLS.find(t=>t.id===f.tool), done=S.done.length;
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<div class="h1" style="font-size:27px;margin-top:6px;">${greet}${name}.</div>`));
+  wrap.appendChild(node(`<div style="font-size:14px;color:var(--ink-soft);margin-top:4px;">Tuesday · here’s what I’d focus on with you today.</div>`));
+
+  wrap.appendChild(node(`
+    <div style="margin-top:14px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,var(--clay-tint),var(--honey-tint));display:flex;gap:11px;align-items:flex-start;">
+      ${svg('sparkles',18,'var(--clay)')}
+      <div><div class="eyebrow" style="color:var(--clay);">Today’s reminder</div><div style="font-family:var(--serif);font-size:16px;margin-top:4px;line-height:1.35;color:var(--ink);">${todayAffirmation()}</div></div>
+    </div>`));
+
+  const lv=levelInfo(S.xp);
+  wrap.appendChild(node(`
+    <button class="card tap" style="margin-top:16px;display:flex;align-items:center;gap:16px;width:100%;text-align:left;" onclick="App.goRewards()">
+      <div style="position:relative;width:76px;height:76px;"><svg width="76" height="76"><circle cx="38" cy="38" r="30" fill="none" stroke="var(--line)" stroke-width="7"/><circle cx="38" cy="38" r="30" fill="none" stroke="var(--sage)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${2*Math.PI*30}" stroke-dashoffset="${2*Math.PI*30*(1-lv.pct)}" transform="rotate(-90 38 38)"/></svg><div style="position:absolute;inset:0;display:grid;place-items:center;">${svg('sprout',26,'var(--sage)')}</div></div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;"><span class="h1" style="font-size:19px;">${lv.name}</span><span style="font-size:11px;font-weight:700;color:var(--sage);background:var(--sage-tint);padding:2px 7px;border-radius:99px;">Lv ${lv.i+1}</span></div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.4;">${S.xp} XP${lv.next?` · ${lv.toNext} to ${lv.next}`:''}. ${done? `${done} tended today.`:'One small thing counts.'}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">${svg('flame',15,'var(--clay)')}<span style="font-size:12.5px;color:var(--clay);font-weight:600;">4-day gentle streak</span><span style="font-size:11.5px;color:var(--ink-faint);">· view badges →</span></div>
+      </div>
+    </button>`));
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow" style="color:var(--clay);">Tuned to you</div></div>`));
+  const focus = node(`
+    <div class="card" style="background:linear-gradient(160deg,var(--sage-tint),var(--card) 70%);">
+      <div class="h1" style="font-size:21px;line-height:1.2;">${f.t}</div>
+      <p style="font-size:14px;color:var(--ink-soft);margin-top:8px;line-height:1.5;">${f.b}</p>
+    </div>`);
+  if(ft){
+    focus.appendChild(node(`
+      <button class="tap" onclick="App.openTool('${ft.id}')" style="margin-top:14px;width:100%;display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;text-align:left;">
+        <div class="iconwrap" style="width:40px;height:40px;border-radius:13px;background:color-mix(in srgb, ${MOD[ft.mod].color} 12%, transparent);">${svg(MOD[ft.mod].icon,20,MOD[ft.mod].color)}</div>
+        <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${ft.t}</div><div style="font-size:12px;color:var(--ink-faint);">${ft.m} min · the smallest next step</div></div>
+        ${svg('chevR',18,'var(--ink-faint)')}
+      </button>`));
+  }
+  wrap.appendChild(focus);
+
+  wrap.appendChild(node(`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;">
+      <button class="card tap" style="padding:14px 10px;text-align:center;" onclick="App.go('checkin')">${svg('plus',20,'var(--clay)')}<div style="font-size:13px;font-weight:600;margin-top:8px;">Check-in</div></button>
+      <button class="card tap" style="padding:14px 10px;text-align:center;" onclick="App.go('companion')">${svg('message',20,'var(--sage)')}<div style="font-size:13px;font-weight:600;margin-top:8px;">Talk to Lumi</div></button>
+      <button class="card tap" style="padding:14px 10px;text-align:center;" onclick="App.openBreathe()">${svg('wind',20,'var(--dusk)')}<div style="font-size:13px;font-weight:600;margin-top:8px;">Breathe</div></button>
+    </div>`));
+
+  wrap.appendChild(node(`
+    <button class="card tap" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:13px;text-align:left;background:linear-gradient(160deg,var(--honey-tint),var(--card) 75%);" onclick="App.goMore()">
+      <div class="iconwrap" style="width:44px;height:44px;border-radius:13px;background:var(--card);border:1px solid var(--line);">${svg('compass',22,'var(--honey)')}</div>
+      <div style="flex:1;"><div style="font-size:15px;font-weight:600;">Coaches & tools</div><div style="font-size:12.5px;color:var(--ink-faint);">Career, exams, relationships, sleep, focus, soundscapes…</div></div>
+      ${svg('chevR',18,'var(--ink-faint)')}
+    </button>`));
+
+  if(S.keepsakes.length){
+    wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;"><div class="eyebrow">Your reflections · private</div><span style="font-size:11px;color:var(--ink-faint);">${svg('shield',11,'var(--ink-faint)')} on this device</span></div>`));
+    const gal=node('<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;"></div>');
+    S.keepsakes.forEach((k,i)=>{
+      const m=MOD[k.mod]||MOD.art;
+      const thumb = k.img
+        ? `<img src="${k.img}" style="width:120px;height:120px;object-fit:cover;border-radius:14px;border:1px solid var(--line);"/>`
+        : `<div style="width:120px;height:120px;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,${m.color} 10%,transparent);display:grid;place-items:center;">${svg('pen',26,m.color)}</div>`;
+      gal.appendChild(node(`<button class="tap" onclick="App.openReflection(${i})" style="flex-shrink:0;text-align:left;">${thumb}<div style="font-size:12px;font-weight:600;margin-top:6px;width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.title}</div><div style="font-size:11px;color:var(--ink-faint);">${k.date}</div></button>`));
+    });
+    wrap.appendChild(gal);
+  }
+  return wrap;
+}
+
+/* --------------------------- COMPANION ---------------------------- */
+function systemPrompt(p){
+  const stage = (STAGES.find(s=>s.id===p.stage)||{}).label || 'unspecified';
+  const ev = p.events.length?p.events.join(', '):'nothing specific yet';
+  const ag = AGE_GROUPS.find(a=>a.id===S.settings.ageGroup);
+  const ageTone = ag ? `\n- Audience: ${ag.label}. Tone: ${ag.note}` : '';
+  const co = S.coach ? coachById(S.coach) : null;
+  const coachLine = co ? `\n\nSPECIAL MODE — you are currently acting as a “${co.name}”. ${co.sys} Stay in this focus, but keep all the safety rules above.` : '';
+  return `You are Lumi, a warm, grounded AI wellbeing companion inside an app called Sprout.
+
+WHO YOU ARE
+- A supportive companion and coach — NOT a therapist, doctor, or crisis service. Never diagnose, never prescribe, never claim to treat mental illness.
+- You draw on evidence-based self-help ideas (CBT, ACT, DBT, mindfulness, narrative, somatic, positive psychology) and offer them as gentle, optional suggestions.
+
+HOW YOU TALK
+- Brief and human. Usually 2-5 sentences. One idea at a time.
+- Validate the feeling first, in plain words, before any suggestion.
+- Curious, not clinical. At most one gentle question per reply.
+- When you suggest something, make it a tiny next step, never a lecture. No toxic positivity, never minimise.${ageTone}
+
+BOUNDARIES
+- For persistent, severe, or worsening symptoms, gently encourage speaking with a licensed professional and remind them Sprout can connect them with one.
+
+SAFETY - MOST IMPORTANT
+- If the person mentions wanting to die, suicide, self-harm, not wanting to exist, or harming someone: respond with warmth, no judgment, no lecture. Take it seriously and stay calm. Gently encourage them to reach out right now to a crisis line and someone they trust, and to tap "Get help now" in the app. Never describe or discuss methods. Make clear they deserve support and are not a burden. Stay with them emotionally.
+
+THE PERSON
+- Life stage: ${stage}
+- What's going on: ${ev}
+Use this naturally to keep support relevant. Don't recite it back.${coachLine}`;
+}
+function fallbackReply(text){
+  const t=text.toLowerCase();
+  if(flagsCrisis(t)) return 'I’m really glad you told me, and you’re not a burden for feeling this way. You deserve support right now — please reach out to someone you trust, and tap “Get help now” at the top to reach a crisis line. I’m here with you. Would you tell me a little about what today’s been like?';
+  if(/(anx|panic|nervous|scared|worr)/.test(t)) return 'That sounds genuinely hard — anxiety makes everything feel urgent at once. Let’s slow the body before the thoughts; would a two-minute breathing reset feel okay? It’s in your Toolkit, or tell me more first.';
+  if(/(sad|down|depress|empty|numb|low|hopeless)/.test(t)) return 'I hear how heavy this feels, and I’m glad you said it out loud rather than carrying it alone. You don’t have to fix the whole feeling today. What’s one small thing that’s felt even slightly okay lately?';
+  if(/(angry|furious|frustrat|fight|argument)/.test(t)) return 'That frustration makes sense — it usually means something mattered to you. Before any next move, a pause can protect more than the perfect response. Want to talk through what’s underneath it?';
+  if(/(tired|exhaust|burn|overwhelm|too much)/.test(t)) return 'It sounds like you’re running on empty — and that’s a signal worth listening to, not pushing through. What would protecting a little energy look like for the rest of today?';
+  return 'Thank you for trusting me with that. I’m listening — tell me a bit more about what’s sitting with you, and we’ll take it one small step at a time.';
+}
+function renderCompanion(){
+  if(S.chat.length===0){
+    const nm=S.profile.name?` ${S.profile.name}`:'';
+    S.chat.push({role:'assistant',content:`Hi${nm}. I’m Lumi — think of me as a quiet place to put what’s on your mind. No need to tidy it up first. What’s been going on?`});
+  }
+  const wrap=node('<div style="display:flex;flex-direction:column;height:100%;"></div>');
+  const co = S.coach ? coachById(S.coach) : null;
+  if(co){
+    wrap.appendChild(node(`<div style="margin:10px 14px 0;padding:11px 14px;border-radius:14px;background:color-mix(in srgb,${co.c} 12%,transparent);display:flex;align-items:center;gap:10px;">${svg(co.icon,18,co.c)}<div style="flex:1;font-size:13px;font-weight:600;color:${co.c};">${co.name} mode</div><button class="tap" onclick="App.exitCoach()" style="font-size:12px;color:var(--ink-soft);background:none;display:flex;align-items:center;gap:4px;">${svg('x',13,'var(--ink-soft)')} exit</button></div>`));
+  }
+  if(S.crisisFlag){
+    wrap.appendChild(node(`<div style="margin:10px 16px 0;padding:13px;border-radius:16px;background:var(--care-tint);border:1px solid rgba(168,65,44,.2);display:flex;gap:10px;">${svg('heart',17,'var(--care)')}<div style="font-size:12.5px;color:var(--care);line-height:1.45;">It sounds like you’re carrying a lot right now. You deserve real support — tap <b>Get help now</b> above to reach a person who can help.</div></div>`));
+  }
+  wrap.appendChild(node('<div id="chatScroll" style="flex:1;overflow-y:auto;padding:14px 16px 8px;"></div>'));
+  if(co && S.chat.length<=2){
+    const chips=node('<div style="padding:0 14px 6px;display:flex;flex-wrap:wrap;gap:7px;"></div>');
+    co.st.forEach(s=>chips.appendChild(node(`<button class="pill tap" onclick="App.coachStarter('${s.replace(/'/g,"\\'")}')" style="padding:8px 12px;font-size:12.5px;color:${co.c};border-color:color-mix(in srgb,${co.c} 40%,var(--line));">${s}</button>`)));
+    wrap.appendChild(chips);
+  }
+  const speakOn = S.settings.speakReplies;
+  wrap.appendChild(node(`
+    <div style="padding:8px 14px 14px;border-top:1px solid var(--line);background:var(--paper);">
+      <div style="display:flex;gap:7px;align-items:flex-end;">
+        <button id="micBtn" class="tap" onclick="App.dictate()" aria-label="Voice input" style="width:42px;height:42px;border-radius:13px;flex-shrink:0;background:transparent;border:1px solid var(--line);display:grid;place-items:center;">${svg('mic',19,'var(--ink-soft)')}</button>
+        <textarea id="chatInput" rows="1" placeholder="Say anything — or tap the mic." style="flex:1;max-height:120px;padding:12px 15px;border-radius:20px;font-size:14.5px;" oninput="App.grow(this)" onkeydown="App.keydown(event)"></textarea>
+        <button id="sendBtn" class="tap" onclick="App.send()" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;background:var(--line);display:grid;place-items:center;">${svg('send',19,'#fff')}</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;">
+        <button class="tap" onclick="App.toggleSpeak()" style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:${speakOn?'var(--sage)':'var(--ink-faint)'};background:none;">${svg(speakOn?'volume':'volumeX',15,speakOn?'var(--sage)':'var(--ink-faint)')} ${speakOn?'Reading replies aloud':'Read replies aloud'}</button>
+        <span style="font-size:11px;color:var(--ink-faint);">· not a therapist</span>
+      </div>
+    </div>`));
+  return wrap;
+}
+function bubble(role,content){
+  const wrap=document.createElement('div');
+  wrap.style.cssText=`display:flex;justify-content:${role==='user'?'flex-end':'flex-start'};margin-bottom:12px;`;
+  if(role==='assistant') wrap.appendChild(node(`<div class="iconwrap" style="width:28px;height:28px;border-radius:9px;background:var(--sage);margin-right:8px;margin-top:2px;">${svg('leaf',14,'#fff')}</div>`));
+  const b=document.createElement('div'); b.className='bubble '+(role==='user'?'user':'bot'); b.textContent=content;
+  wrap.appendChild(b); return wrap;
+}
+function paintChat(){
+  const sc=$('#chatScroll'); if(!sc) return; sc.innerHTML='';
+  S.chat.forEach(m=>sc.appendChild(bubble(m.role,m.content)));
+  sc.scrollTop=sc.scrollHeight;
+}
+
+/* ---------------------------- CHECK-IN ---------------------------- */
+function matchedTools(){
+  const f=S.checkin.feels;
+  let pool=TOOLS.filter(t=>t.for.some(tag=>f.some(x=>tag.includes(x)||x.includes(tag))));
+  if(pool.length) return pool.slice(0,3);
+  if(S.checkin.mood&&S.checkin.mood<=2) return ['soothe','activate','drawfeel'].map(id=>TOOLS.find(t=>t.id===id));
+  return ['three','box','savour'].map(id=>TOOLS.find(t=>t.id===id));
+}
+function renderCheckin(){
+  const c=S.checkin, wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<div class="h1" style="font-size:25px;margin-top:6px;">How are you, really?</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;">No log that just sits there — I’ll meet you with something useful.</div>`));
+
+  if(c.phase==='mood'){
+    const sec=node('<div style="margin-top:26px;"></div>');
+    sec.appendChild(node('<div class="eyebrow">Right now, I feel…</div>'));
+    const row=node('<div style="display:flex;justify-content:space-between;margin-top:18px;"></div>');
+    MOODS.forEach(m=>{
+      const on=c.mood===m.v;
+      row.appendChild(node(`<button class="tap" onclick="App.pickMood(${m.v})" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:52px;height:52px;border-radius:18px;background:${on?m.color:'color-mix(in srgb,'+m.color+' 13%,transparent)'};border:2px solid ${on?m.color:'transparent'};display:grid;place-items:center;"><div style="width:18px;height:18px;border-radius:99px;background:${on?'#fff':m.color};"></div></div>
+        <span style="font-size:11.5px;color:${on?'var(--ink)':'var(--ink-faint)'};font-weight:${on?700:500};">${m.label}</span></button>`));
+    });
+    sec.appendChild(row);
+    sec.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:34px;" ${c.mood?'':'disabled'} onclick="App.checkPhase('feeling')">Next</button>`));
+    wrap.appendChild(sec);
+  }
+
+  if(c.phase==='feeling'){
+    const sec=node('<div style="margin-top:24px;"></div>');
+    sec.appendChild(node('<div class="eyebrow">What’s it shaped like? (optional)</div>'));
+    const chips=node('<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;"></div>');
+    FEELINGS.forEach(fl=>{
+      const on=c.feels.includes(fl);
+      chips.appendChild(node(`<button class="pill" style="text-transform:capitalize;${on?'border-color:var(--dusk);background:var(--dusk-tint);color:var(--dusk);font-weight:600;':''}" onclick="App.toggleFeel('${fl}')">${fl}</button>`));
+    });
+    sec.appendChild(chips);
+    sec.appendChild(node(`<button class="btn btn-clay btn-block" style="margin-top:30px;" onclick="App.logCheckin()">See what would help</button>`));
+    wrap.appendChild(sec);
+  }
+
+  if(c.phase==='result'){
+    const lead = c.mood<=2?'A heavier day. Let’s not aim for fixed — just a little lighter.':c.mood===3?'An in-between day. A small reset can tip it gently.':'A steadier day — worth noticing what’s holding you up.';
+    wrap.appendChild(node(`
+      <div class="card" style="margin-top:22px;background:linear-gradient(160deg,var(--dusk-tint),var(--card) 70%);">
+        <div style="display:flex;align-items:center;gap:8px;">${svg('sparkles',17,'var(--dusk)')}<div class="eyebrow" style="color:var(--dusk);">Logged · and here’s the bridge</div></div>
+        <p style="font-family:var(--serif);font-size:18px;margin-top:10px;line-height:1.3;">${lead}</p>
+      </div>`));
+    wrap.appendChild(node(`<div style="margin-top:16px;margin-bottom:10px;"><div class="eyebrow">A few things that fit, right now</div></div>`));
+    matchedTools().filter(Boolean).forEach(t=>{
+      wrap.appendChild(node(`<button class="card tap" style="margin-bottom:10px;display:flex;align-items:center;gap:12px;width:100%;text-align:left;" onclick="App.openTool('${t.id}')">
+        <div class="iconwrap" style="width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,${MOD[t.mod].color} 12%,transparent);">${svg(MOD[t.mod].icon,20,MOD[t.mod].color)}</div>
+        <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${t.t}</div><div style="font-size:12.5px;color:var(--ink-faint);">${t.m} min · ${t.b}</div></div>
+        ${svg('chevR',18,'var(--ink-faint)')}</button>`));
+    });
+    wrap.appendChild(node(`<button onclick="App.resetCheck()" style="width:100%;margin-top:6px;padding:12px;color:var(--ink-soft);font-size:13px;">Start over</button>`));
+  }
+  return wrap;
+}
+
+/* ---------------------------- TOOLKIT ----------------------------- */
+function renderToolkit(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<div class="h1" style="font-size:25px;margin-top:6px;">Your therapy toolkit</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Short, evidence-informed practices from many therapeutic approaches. Tap an approach to explore it — these are skills, not treatment.</div>`));
+
+  wrap.appendChild(node(`<div style="position:relative;margin-top:14px;">
+    <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5;">${svg('compass',17,'var(--ink-soft)')}</span>
+    <input id="toolSearch" value="${(S.search||'').replace(/"/g,'&quot;')}" placeholder="Search practices…" oninput="App.search(this.value)" style="width:100%;padding:12px 14px 12px 40px;border-radius:14px;font-size:14.5px;"/>
+  </div>`));
+
+  const used = Array.from(new Set(TOOLS.map(t=>t.mod)));
+  const chips=node('<div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px;"></div>');
+  const mk=(id,label,extra)=>{const on=S.modFilter===id; return node(`<button class="pill tap" style="white-space:nowrap;padding:8px 14px;font-size:12.5px;${on?'background:var(--sage);color:#fff;border-color:var(--sage);font-weight:600;':'color:var(--ink-soft);'}" onclick="App.setMod('${id}')">${extra||''}${label}</button>`);};
+  chips.appendChild(mk('all','All approaches'));
+  chips.appendChild(mk('fav', `Favourites${S.favorites.length?' · '+S.favorites.length:''}`, ''));
+  used.forEach(m=>chips.appendChild(mk(m,MOD[m].label)));
+  wrap.appendChild(chips);
+
+  if(S.modFilter!=='all' && S.modFilter!=='fav'){
+    const m=MOD[S.modFilter];
+    wrap.appendChild(node(`<div style="margin-top:14px;padding:14px;border-radius:18px;background:color-mix(in srgb,${m.color} 9%,transparent);display:flex;gap:11px;align-items:flex-start;">
+      <div class="iconwrap" style="width:34px;height:34px;border-radius:11px;background:color-mix(in srgb,${m.color} 18%,transparent);">${svg(m.icon,18,m.color)}</div>
+      <div><div style="font-size:14px;font-weight:600;color:${m.color};">${m.label}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;line-height:1.45;">${m.about}</div></div></div>`));
+  }
+
+  const q=(S.search||'').trim().toLowerCase();
+  let items = TOOLS.filter(t=>{
+    if(S.modFilter==='fav') return S.favorites.includes(t.id);
+    if(S.modFilter!=='all' && t.mod!==S.modFilter) return false;
+    if(q){ return (t.t+' '+t.b+' '+MOD[t.mod].label).toLowerCase().includes(q); }
+    return true;
+  });
+
+  const list=node('<div style="margin-top:14px;display:grid;gap:11px;"></div>');
+  if(items.length===0){
+    list.appendChild(node(`<div style="padding:26px;text-align:center;color:var(--ink-faint);font-size:14px;">${S.modFilter==='fav'?'No favourites yet — tap the heart on a practice to save it.':'Nothing matches that search.'}</div>`));
+  }
+  items.forEach(t=>{
+    const m=MOD[t.mod], done=S.done.includes(t.id), fav=S.favorites.includes(t.id);
+    const row=node(`<div class="card" style="display:flex;align-items:center;gap:13px;">
+      <button class="tap" onclick="App.openTool('${t.id}')" style="flex:1;display:flex;align-items:center;gap:13px;text-align:left;background:none;">
+        <div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:color-mix(in srgb,${m.color} 12%,transparent);">${svg(m.icon,22,m.color)}</div>
+        <div style="flex:1;"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:15px;font-weight:600;">${t.t}</span>${done?svg('check',14,'var(--sage)'):''}</div><div style="font-size:12.5px;color:var(--ink-faint);margin-top:2px;">${t.m} min · ${m.label}</div></div>
+      </button>
+      <button class="tap" aria-label="Favourite" onclick="App.toggleFav('${t.id}')" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:${fav?'var(--clay-tint)':'transparent'};">${svg('heart',19,fav?'var(--clay)':'var(--ink-faint)')}</button>
+    </div>`);
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+/* ---------------------------- INSIGHTS ---------------------------- */
+function renderInsights(){
+  const W=360,H=130,pad=10,maxMood=5;
+  const xStep=(W-pad*2)/(MOOD_DATA.length-1);
+  const pts=MOOD_DATA.map((d,i)=>({x:pad+i*xStep,y:pad+(H-pad*2)*(1-(d.mood-1)/(maxMood-1)),...d}));
+  const path=pts.map((p,i)=>`${i===0?'M':'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  let bars=''; pts.forEach(p=>{const bh=(p.sleep/9)*(H-pad*2); bars+=`<rect x="${p.x-7}" y="${H-pad-bh}" width="14" height="${bh}" rx="3" fill="var(--sage-tint)"/>`;});
+  let dots=''; pts.forEach(p=>{dots+=`<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="var(--clay)" stroke="#fff" stroke-width="1.5"/>`;});
+  let labels=''; MOOD_DATA.forEach(d=>{labels+=`<span style="font-size:9.5px;color:var(--ink-faint);width:14px;text-align:center;">${d.d}</span>`;});
+
+  const patterns=[
+    {icon:'moon',color:'var(--dusk)',t:'Sleep is steering your mood',b:'On nights under ~5½ hours, your next day averaged “low.” Over 7 hours, it averaged “good.” Sleep looks like your strongest lever right now.',e:'Tonight: try the 5-min wind-down. One night, not a streak.'},
+    {icon:'leaf',color:'var(--sage)',t:'Moving your body lifts the needle',b:'Every day you tagged a walk, you rated your mood “good” or better — no exceptions in the last two weeks.',e:'This week: one 10-minute walk on a heavier day.'},
+    {icon:'waves',color:'var(--clay)',t:'Wednesdays run hot',b:'Your low-mood and conflict days cluster midweek. Worth planning a lighter Wednesday rather than powering through.',e:'Pre-load the cool-down tool for Wednesday.'},
+  ];
+
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<div class="h1" style="font-size:25px;margin-top:6px;">Patterns I’m noticing</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">I connect the dots across sleep, movement and mood — the links most apps leave as separate charts.</div>`));
+
+  if(S.history.length){
+    const recent = S.history.slice(0,14).reverse();
+    const moodColor = m => MOODS[(m||1)-1].color;
+    let hdots=''; recent.forEach(h=>{ hdots+=`<div title="${h.date}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:16px;height:16px;border-radius:99px;background:${moodColor(h.mood)};"></div></div>`; });
+    wrap.appendChild(node(`
+      <div class="card" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="eyebrow" style="color:var(--sage);">Your check-ins</div><span style="font-size:11.5px;color:var(--ink-faint);">${S.history.length} logged</span></div>
+        <div style="display:flex;gap:4px;margin-top:12px;">${hdots}</div>
+        <div style="font-size:11.5px;color:var(--ink-faint);margin-top:10px;">Your real entries. Keep checking in and richer patterns will grow here.</div>
+      </div>`));
+  }
+
+  wrap.appendChild(node(`
+    <div class="card" style="margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="eyebrow">Example · last 14 days</div><span style="font-size:11.5px;color:var(--ink-faint);">mood · sleep</span></div>
+      <svg width="100%" viewBox="0 0 ${W} ${H}" style="margin-top:10px;">${bars}<path d="${path}" fill="none" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;">${labels}</div>
+      <div style="display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--ink-soft);">
+        <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:3px;background:var(--clay);border-radius:9px;"></span> mood</span>
+        <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--sage-tint);border-radius:3px;"></span> hours slept</span>
+      </div>
+    </div>`));
+  wrap.appendChild(node(`<div style="margin-top:20px;margin-bottom:10px;"><div class="eyebrow" style="color:var(--dusk);">What it’s telling us</div></div>`));
+  const list=node('<div style="display:grid;gap:12px;"></div>');
+  patterns.forEach(p=>{
+    list.appendChild(node(`
+      <div class="card">
+        <div style="display:flex;gap:12px;">
+          <div class="iconwrap" style="width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,${p.color} 12%,transparent);">${svg(p.icon,21,p.color)}</div>
+          <div style="flex:1;"><div style="font-size:15.5px;font-weight:600;">${p.t}</div><p style="font-size:13.5px;color:var(--ink-soft);margin-top:5px;line-height:1.5;">${p.b}</p></div>
+        </div>
+        <div style="margin-top:12px;padding:11px 13px;border-radius:14px;background:color-mix(in srgb,${p.color} 10%,transparent);display:flex;gap:9px;align-items:flex-start;">${svg('lightbulb',15,p.color)}<span style="font-size:13px;line-height:1.45;"><b style="color:${p.color};">Tiny experiment · </b>${p.e}</span></div>
+      </div>`));
+  });
+  wrap.appendChild(list);
+  wrap.appendChild(node(`<div style="margin-top:16px;font-size:11.5px;color:var(--ink-faint);text-align:center;line-height:1.5;">Illustrative patterns from sample data. Real insights build from your own check-ins, privately.</div>`));
+  return wrap;
+}
+
+/* ---------------------------- overlays ---------------------------- */
+function overlay(inner){
+  const ov=node('<div class="overlay"></div>');
+  ov.addEventListener('click',()=>ov.remove());
+  const sheet=node('<div class="sheet"></div>');
+  sheet.addEventListener('click',e=>e.stopPropagation());
+  sheet.appendChild(node('<div class="grip"></div>'));
+  sheet.appendChild(inner);
+  ov.appendChild(sheet); phone.appendChild(ov); return ov;
+}
+function openTool(id){
+  const t=TOOLS.find(x=>x.id===id), m=MOD[t.mod];
+  const inner=node(`<div style="padding:22px 22px 26px;"></div>`);
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:12px;">
+    <div class="iconwrap" style="width:50px;height:50px;border-radius:16px;background:color-mix(in srgb,${m.color} 12%,transparent);">${svg(m.icon,25,m.color)}</div>
+    <div style="flex:1;"><div class="h1" style="font-size:22px;">${t.t}</div><div style="font-size:12.5px;color:var(--ink-faint);">${t.m} min · ${m.label}</div></div></div>`));
+  inner.appendChild(node(`<p style="font-size:14.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5;">${t.b}</p>`));
+  const steps=node('<div style="margin-top:14px;display:grid;gap:10px;"></div>');
+  t.s.forEach((s,i)=>steps.appendChild(node(`<div class="step-row"><div class="step-num" style="background:${m.color};">${i+1}</div><span style="font-size:14.5px;line-height:1.45;">${s}</span></div>`)));
+  inner.appendChild(steps);
+
+  if(canKeepsake(t.mod)){
+    pendingToolId = t.id;
+    const keep = node(`<div style="margin-top:18px;padding:15px;border-radius:18px;background:var(--paper2);border:1px solid var(--line);"></div>`);
+    keep.appendChild(node(`<div style="display:flex;align-items:center;gap:8px;"><div class="eyebrow" style="color:${m.color};">Keep a reflection · optional</div></div>`));
+    keep.appendChild(node(`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.45;">Photograph ${t.mod==='art'?'what you drew':'your page'} if you’d like a private keepsake. ${svg('shield',12,'var(--ink-faint)')} <b>A photo of your work only — never yourself.</b> Stays on your device.</div>`));
+
+    if(pendingPhoto){
+      keep.appendChild(node(`<div style="position:relative;margin-top:12px;"><img src="${pendingPhoto}" style="width:100%;max-height:200px;object-fit:cover;border-radius:14px;border:1px solid var(--line);"/><button class="tap" onclick="App.removePhoto()" style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:99px;background:rgba(43,38,32,.6);display:grid;place-items:center;">${svg('x',16,'#fff')}</button></div>`));
+    } else {
+      keep.appendChild(node(`<button class="tap" onclick="document.getElementById('keepFile').click()" style="margin-top:12px;width:100%;padding:14px;border-radius:14px;border:1.5px dashed var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;gap:9px;color:var(--ink-soft);font-size:14px;font-weight:500;">${svg('palette',18,m.color)} Add a photo of your work</button>`));
+    }
+    keep.appendChild(node(`<input id="keepFile" type="file" accept="image/*" style="display:none;" onchange="App.pickPhoto(this)" />`));
+    keep.appendChild(node(`<textarea id="keepNote" rows="2" placeholder="A line about how it felt (optional)" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:14px;font-size:14px;">${pendingNote||''}</textarea>`));
+    inner.appendChild(keep);
+    inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="App.completeTool('${t.id}', true)">${svg('check',16,'#fff')} I did this</button>`));
+  } else {
+    inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:20px;" onclick="App.completeTool('${t.id}', false)">${svg('check',16,'#fff')} I did this</button>`));
+  }
+  openTool._ov = overlay(inner);
+}
+function openCrisis(){
+  const inner=node('<div style="padding:22px 22px 28px;"></div>');
+  inner.appendChild(node(`<div class="iconwrap" style="width:48px;height:48px;border-radius:16px;background:var(--care-tint);justify-self:start;">${svg('heart',24,'var(--care)')}</div>`));
+  inner.appendChild(node(`<div class="h1" style="font-size:24px;margin-top:14px;line-height:1.15;">You don’t have to hold this alone.</div>`));
+  inner.appendChild(node(`<p style="font-size:14.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">If you’re in immediate danger, please contact local emergency services. Otherwise, trained people are ready to listen, any time — these calls are free.</p>`));
+  const lines=node('<div style="margin-top:16px;display:grid;gap:10px;"></div>');
+  CRISIS_LINES.forEach(l=>lines.appendChild(node(`<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:var(--paper2);border:1px solid var(--line);">
+    <div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--care);">${svg('phone',18,'#fff')}</div>
+    <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${l.name}</div><div style="font-size:12px;color:var(--ink-faint);">${l.region} · ${l.note}</div></div>
+    <div style="font-size:16px;font-weight:700;color:var(--care);">${l.num}</div></div>`)));
+  inner.appendChild(lines);
+  inner.appendChild(node(`<div style="margin-top:14px;padding:13px;border-radius:14px;background:var(--sage-tint);display:flex;gap:9px;">${svg('compass',17,'var(--sage)')}<span style="font-size:13px;line-height:1.45;">Outside these regions? <b>findahelpline.com</b> lists verified crisis lines for almost every country.</span></div>`));
+  inner.appendChild(node(`<p style="font-size:12px;color:var(--ink-faint);margin-top:14px;line-height:1.5;text-align:center;">Please double-check numbers for your area — services and hours can change.</p>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="App.closeOverlay()">Close</button>`));
+  openCrisis._ov = overlay(inner);
+}
+
+function reflectPrompt(){
+  return `You are Lumi, a warm AI companion. Someone has just finished a creative or journaling wellbeing exercise and is privately sharing what they made.
+
+YOUR JOB
+- Offer a brief, warm, encouraging reflection on their creative expression — 2-4 sentences. Notice effort, colour, mood, or theme with curiosity and care.
+- This is NOT an evaluation, a grade, or a check that they "really did it." Never judge quality, never verify, never say whether it counts.
+- End with one gentle, open question or a kind invitation — no pressure.
+
+IMPORTANT SAFETY
+- If the image appears to show a person, a face, or anything personally identifying, do NOT describe or analyse the person. Gently say you'll focus on the feelings or the creative side instead, and you can keep things to their words.
+- Never diagnose. You are a supportive companion, not a therapist.`;
+}
+function fallbackReflection(note){
+  if(note && note.trim()) return `Thank you for sharing this with me — what you wrote (“${note.trim().slice(0,80)}”) takes honesty. There’s no right or wrong here; you showed up and made something, and that counts. What felt different, even slightly, after doing it?`;
+  return `Thank you for trusting me with this. Making something — however it turned out — is its own kind of care, and you did it. What was it like to sit with this for a few minutes?`;
+}
+function dataUrlParts(durl){
+  const m = /^data:(.+?);base64,(.*)$/.exec(durl||'');
+  return m ? {media:m[1], data:m[2]} : null;
+}
+function openReflection(idx){
+  const k = S.keepsakes[idx]; if(!k) return;
+  const m = MOD[k.mod]||MOD.art;
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:12px;">
+    <div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:color-mix(in srgb,${m.color} 12%,transparent);">${svg(m.icon,23,m.color)}</div>
+    <div style="flex:1;"><div class="h1" style="font-size:20px;">${k.title}</div><div style="font-size:12px;color:var(--ink-faint);">${k.date}</div></div>
+    <button class="tap" onclick="App.deleteKeepsake(${idx})" title="Delete" style="width:36px;height:36px;border-radius:99px;background:var(--care-tint);display:grid;place-items:center;">${svg('x',17,'var(--care)')}</button></div>`));
+  if(k.img) inner.appendChild(node(`<img src="${k.img}" style="width:100%;margin-top:14px;border-radius:16px;border:1px solid var(--line);"/>`));
+  if(k.note) inner.appendChild(node(`<p style="font-size:14.5px;margin-top:14px;line-height:1.5;font-family:var(--serif);color:var(--ink);">“${k.note}”</p>`));
+
+  const refArea = node('<div id="refArea" style="margin-top:16px;"></div>');
+  if(k.reflection){
+    refArea.appendChild(node(`<div style="padding:14px;border-radius:16px;background:var(--sage-tint);display:flex;gap:10px;">${svg('leaf',17,'var(--sage)')}<div style="font-size:14px;line-height:1.5;color:var(--ink);">${k.reflection}</div></div>`));
+  } else {
+    refArea.appendChild(node(`<div style="font-size:11.5px;color:var(--ink-faint);line-height:1.45;margin-bottom:10px;">Lumi can reflect kindly on what you made — to encourage, never to judge or verify. Skip this if your photo shows anything personal.</div>`));
+    refArea.appendChild(node(`<button id="reflectBtn" class="btn btn-soft btn-block" onclick="App.reflect(${idx})">${svg('sparkles',16,'var(--sage)')} Ask Lumi to reflect</button>`));
+  }
+  inner.appendChild(refArea);
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="App.closeOverlay()">Close</button>`));
+  openReflection._ov = overlay(inner);
+}
+
+/* ------------------------- left drawer ---------------------------- */
+function openDrawer(){
+  const p=S.profile;
+  const initial=((p.name||'You').trim().charAt(0)||'Y').toUpperCase();
+  const stageLabel=(STAGES.find(s=>s.id===p.stage)||{}).label||'Welcome';
+  const ov=node('<div class="overlay" style="align-items:stretch;justify-content:flex-start;"></div>');
+  ov.addEventListener('click',()=>ov.remove());
+  const d=node('<div class="drawer"></div>');
+  d.addEventListener('click',e=>e.stopPropagation());
+
+  d.appendChild(node(`
+    <button class="tap" onclick="App.goProfile()" style="text-align:left;padding:24px 18px 16px;background:linear-gradient(160deg,var(--sage-tint),var(--paper) 85%);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px;width:100%;">
+      <div style="width:48px;height:48px;border-radius:16px;background:var(--sage);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:22px;">${initial}</div>
+      <div style="flex:1;"><div style="font-family:var(--serif);font-size:19px;">${p.name||'Your profile'}</div><div style="font-size:12.5px;color:var(--ink-soft);">${stageLabel} · view profile</div></div>
+      ${svg('chevR',18,'var(--ink-faint)')}
+    </button>`));
+
+  const nav=node('<div style="padding:8px 10px 16px;flex:1;"></div>');
+  function group(id,label,items){
+    const open=S.openGroups[id];
+    const g=node('<div style="margin-top:4px;"></div>');
+    g.appendChild(node(`<button class="disc-head" onclick="App.toggleGroup('${id}')"><span class="lbl">${label}</span><span class="chev ${open?'open':''}">${svg('chevD',16,'var(--ink-faint)')}</span></button>`));
+    if(open){
+      const list=node('<div></div>');
+      items.forEach(it=>list.appendChild(node(`<button class="nav-item" onclick="${it.action}">${svg(it.icon,19,it.color||'var(--ink-soft)')}<span style="flex:1;">${it.label}</span>${it.right?`<span style="font-size:12px;color:var(--ink-faint);">${it.right}</span>`:''}</button>`)));
+      g.appendChild(list);
+    }
+    return g;
+  }
+  nav.appendChild(group('space','Your space',[
+    {icon:'user',  label:'Profile',           action:"App.goProfile()"},
+    {icon:'sprout',label:'Your growth · rewards', action:"App.goRewards()", color:'var(--sage)', right:'Lv '+(levelIndex(S.xp)+1)},
+    {icon:'compass', label:'Coaches & tools',   action:"App.goMore()", color:'var(--honey)'},
+    {icon:'pen',   label:'Reflections',        action:"App.goReflections()", right:String(S.keepsakes.length||'')},
+    {icon:'sparkles', label:'All features',     action:"App.goFeatures()", color:'var(--honey)'},
+  ]));
+  nav.appendChild(group('approaches','Therapy approaches',
+    Object.keys(MOD).map(m=>({icon:MOD[m].icon, color:MOD[m].color, label:MOD[m].label, action:`App.gotoApproach('${m}')`}))));
+  nav.appendChild(group('settings','Settings',[
+    {icon:'sun',  label:'Themes',           action:"App.openThemes()", color:'var(--sage)'},
+    {icon:'user', label:'Age & display',    action:"App.openAgeDisplay()"},
+    {icon:'book', label:'Accessibility',    action:"App.openA11y()", color:'var(--dusk)'},
+    {icon:'bell', label:'Reminders & sound',action:"App.openSettings()"},
+    {icon:'lock', label:'Privacy & data',   action:"App.openPrivacy()"},
+  ]));
+  nav.appendChild(group('support','Support',[
+    {icon:'phone', label:'Crisis resources', action:"App.openCrisis()", color:'var(--care)'},
+    {icon:'info',  label:'About Sprout',      action:"App.openAbout()"},
+  ]));
+  d.appendChild(nav);
+  d.appendChild(node(`<div style="padding:14px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);">Sprout · prototype v0.3 — a companion, not a clinician.</div>`));
+  ov.appendChild(d); phone.appendChild(ov);
+}
+
+/* ------------------------- kebab popover -------------------------- */
+function openKebab(){
+  const ov=node('<div class="overlay" style="background:transparent;"></div>');
+  ov.addEventListener('click',()=>ov.remove());
+  const m=node('<div class="popover"></div>');
+  m.addEventListener('click',e=>e.stopPropagation());
+  const item=(icon,label,action,danger)=>`<button class="pop-item ${danger?'danger':''}" onclick="${action}">${svg(icon,17,danger?'var(--care)':'var(--ink-soft)')}<span>${label}</span></button>`;
+  m.innerHTML = item('user','Edit profile','App.goProfile()')
+    + item('sprout','Your growth','App.goRewards()')
+    + item('sun','Themes','App.openThemes()')
+    + item('book','Accessibility','App.openA11y()')
+    + item('lock','Privacy & data','App.openPrivacy()')
+    + item('info','About Sprout','App.openAbout()')
+    + '<div class="pop-sep"></div>'
+    + item('trash','Clear my data','App.confirmClear()',true);
+  ov.appendChild(m); phone.appendChild(ov);
+}
+
+/* --------------------------- profile ------------------------------ */
+function renderProfile(){
+  const p=S.profile, st=S.settings;
+  const initial=((p.name||'Y').trim().charAt(0)||'Y').toUpperCase();
+  const stageLabel=(STAGES.find(s=>s.id===p.stage)||{}).label||'Not set';
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:27px;margin-top:10px;">Profile</div>`));
+
+  const card=node('<div class="card" style="margin-top:14px;"></div>');
+  card.appendChild(node(`<div style="display:flex;align-items:center;gap:14px;"><div style="width:60px;height:60px;border-radius:20px;background:var(--sage);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:28px;">${initial}</div><div style="flex:1;"><div class="eyebrow">Your name</div><input id="profName" value="${p.name||''}" placeholder="Add your name" oninput="App.setName(this.value)" style="width:100%;font-family:var(--serif);font-size:20px;border:none;background:transparent;padding:2px 0;margin-top:3px;"/></div></div>`));
+  card.appendChild(node(`<button class="tap" onclick="App.openStagePicker()" style="margin-top:14px;width:100%;display:flex;align-items:center;gap:11px;padding:13px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);text-align:left;"><div class="iconwrap" style="width:36px;height:36px;border-radius:11px;background:var(--sage-tint);">${svg('compass',18,'var(--sage)')}</div><div style="flex:1;"><div style="font-size:12px;color:var(--ink-faint);">Life stage</div><div style="font-size:14.5px;font-weight:600;">${stageLabel}</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
+  wrap.appendChild(card);
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow">Appearance</div></div>`));
+  const themeLabel=(THEMES[S.settings.theme]||THEMES.sage).label;
+  const ageLabel=(AGE_GROUPS.find(a=>a.id===S.settings.ageGroup)||{}).label||'Not set';
+  const sw=(THEMES[S.settings.theme]||THEMES.sage).swatch;
+  const appearance=node('<div style="display:grid;gap:10px;"></div>');
+  appearance.appendChild(node(`<button class="card tap" style="display:flex;align-items:center;gap:12px;text-align:left;" onclick="App.openThemes()">
+    <div style="display:flex;gap:-4px;">${sw.map((c,i)=>`<span style="width:22px;height:22px;border-radius:99px;background:${c};border:2px solid var(--card);margin-left:${i?-8:0}px;"></span>`).join('')}</div>
+    <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Theme</div><div style="font-size:12px;color:var(--ink-faint);">${themeLabel}</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
+  appearance.appendChild(node(`<button class="card tap" style="display:flex;align-items:center;gap:12px;text-align:left;" onclick="App.openAgeDisplay()">
+    <div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--sage-tint);">${svg('user',19,'var(--sage)')}</div>
+    <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Age & display</div><div style="font-size:12px;color:var(--ink-faint);">${ageLabel} · text ${Math.round((S.settings.textSize||1)*100)}%</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
+  const artDesc = S.settings.ageGroup ? 'Tuned to your age group' : 'Gentle leaf motif';
+  appearance.appendChild(node(`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
+    <div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--dusk-tint);">${svg('sparkles',19,'var(--dusk)')}</div>
+    <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Background art</div><div style="font-size:12px;color:var(--ink-faint);">${S.settings.bgArt?artDesc:'Off'}</div></div>
+    <button class="switch ${S.settings.bgArt?'on':''}" onclick="App.toggle('bgArt')"><span class="knob"></span></button>
+  </div>`));
+  wrap.appendChild(appearance);
+
+  wrap.appendChild(node(`<div style="margin-top:20px;margin-bottom:10px;"><div class="eyebrow">What’s going on right now</div></div>`));
+  const chips=node('<div style="display:flex;flex-wrap:wrap;gap:9px;"></div>');
+  EVENTS.forEach(e=>{const on=p.events.includes(e); chips.appendChild(node(`<button class="pill" onclick="App.toggleEventProfile('${e.replace(/'/g,"\\'")}')" style="${on?'border-color:var(--clay);background:var(--clay-tint);color:var(--clay);font-weight:600;':''}">${on?svg('check',13,'var(--clay)'):''} ${e}</button>`));});
+  wrap.appendChild(chips);
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow">Your progress</div></div>`));
+  const stat=(icon,color,big,small)=>`<div class="card" style="padding:16px;text-align:center;">${svg(icon,20,color)}<div style="font-family:var(--serif);font-size:26px;margin-top:6px;">${big}</div><div style="font-size:11.5px;color:var(--ink-faint);">${small}</div></div>`;
+  wrap.appendChild(node(`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">${stat('flame','var(--clay)',4,'day streak')}${stat('check','var(--sage)',S.done.length,'tended')}${stat('pen','var(--dusk)',S.keepsakes.length,'reflections')}</div>`));
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:6px;"><div class="eyebrow">Preferences</div></div>`));
+  const prefs=node('<div class="card"></div>');
+  const pref=(key,icon,label,desc)=>`<div class="pref">${svg(icon,19,'var(--ink-soft)')}<div style="flex:1;"><div style="font-size:14.5px;font-weight:500;">${label}</div>${desc?`<div style="font-size:12px;color:var(--ink-faint);margin-top:1px;">${desc}</div>`:''}</div><button class="switch ${st[key]?'on':''}" onclick="App.toggle('${key}')"><span class="knob"></span></button></div>`;
+  prefs.innerHTML = pref('reminders','bell','Gentle reminders','A soft nudge, never nagging')
+    + pref('sound','sun','Sounds','For breathing & wind-down')
+    + pref('under18','shield','I’m under 18','Turns photo features off, for safety')
+    + pref('photoFeatures','pen','Photo keepsakes', st.under18?'Off for under-18 accounts':'Save a photo of your art or pages')
+    + pref('shareInsights','lock','Share anonymised insights','Off by default — helps improve Sprout');
+  wrap.appendChild(prefs);
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow">Your data</div></div>`));
+  const data=node('<div style="display:grid;gap:10px;"></div>');
+  data.appendChild(node(`<button class="card tap" style="display:flex;align-items:center;gap:12px;text-align:left;" onclick="App.exportData()"><div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--sage-tint);">${svg('download',19,'var(--sage)')}</div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Export my data</div><div style="font-size:12px;color:var(--ink-faint);">Download everything as a file</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
+  data.appendChild(node(`<button class="card tap" style="display:flex;align-items:center;gap:12px;text-align:left;" onclick="App.confirmClear()"><div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--care-tint);">${svg('trash',19,'var(--care)')}</div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:var(--care);">Delete my data</div><div style="font-size:12px;color:var(--ink-faint);">Clears reflections, check-ins & progress</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
+  wrap.appendChild(data);
+
+  wrap.appendChild(node(`<div style="margin-top:16px;font-size:11.5px;color:var(--ink-faint);text-align:center;line-height:1.5;">In this prototype nothing leaves your device. In a real version, your account, consent and data controls would live here.</div>`));
+  return wrap;
+}
+
+/* ----------------------- settings / sheets ------------------------ */
+function openSettings(){
+  const st=S.settings;
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--sage-tint);">${svg('gear',23,'var(--sage)')}</div><div class="h1" style="font-size:22px;">Settings</div></div>`));
+  const prefs=node('<div class="card" style="margin-top:16px;"></div>');
+  const pref=(key,icon,label,desc)=>`<div class="pref">${svg(icon,19,'var(--ink-soft)')}<div style="flex:1;"><div style="font-size:14.5px;font-weight:500;">${label}</div>${desc?`<div style="font-size:12px;color:var(--ink-faint);margin-top:1px;">${desc}</div>`:''}</div><button class="switch ${st[key]?'on':''}" onclick="App.toggle('${key}',true)"><span class="knob"></span></button></div>`;
+  prefs.innerHTML = pref('reminders','bell','Gentle reminders','A soft nudge, never nagging')
+    + pref('sound','sun','Sounds','For breathing & wind-down')
+    + pref('under18','shield','I’m under 18','Turns photo features off, for safety')
+    + pref('photoFeatures','pen','Photo keepsakes', st.under18?'Off for under-18 accounts':'Save a photo of your art or pages');
+  inner.appendChild(prefs);
+  inner.appendChild(node(`<div style="margin-top:14px;padding:13px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);font-size:12.5px;color:var(--ink-soft);line-height:1.45;">Appearance, language and notification timing would live here too. This is a prototype, so changes aren’t saved between sessions.</div>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="App.closeOverlay()">Done</button>`));
+  overlay(inner);
+}
+function openPrivacy(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--dusk-tint);">${svg('lock',23,'var(--dusk)')}</div><div class="h1" style="font-size:22px;">Privacy & data</div></div>`));
+  inner.appendChild(node(`<p style="font-size:14px;color:var(--ink-soft);margin-top:14px;line-height:1.5;">Your reflections, check-ins and chats are yours. In this prototype they stay on your device and clear when you reload — nothing is uploaded.</p>`));
+  const pts=[
+    {icon:'shield',   t:'Private by default', b:'Sensitive content is never shared without your say-so.'},
+    {icon:'pen',      t:'Photos stay local',  b:'And photo features switch off entirely for under-18 accounts.'},
+    {icon:'sparkles', t:'No training, no ads',b:'Your personal content is never used to train models or sold to advertisers.'},
+  ];
+  const list=node('<div style="margin-top:14px;display:grid;gap:10px;"></div>');
+  pts.forEach(p=>list.appendChild(node(`<div style="display:flex;gap:11px;align-items:flex-start;padding:13px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);">${svg(p.icon,18,'var(--sage)')}<div><div style="font-size:14px;font-weight:600;">${p.t}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;line-height:1.4;">${p.b}</div></div></div>`)));
+  inner.appendChild(list);
+  inner.appendChild(node(`<button class="btn btn-soft btn-block" style="margin-top:16px;" onclick="App.exportData()">${svg('download',16,'var(--sage)')} Export my data</button>`));
+  inner.appendChild(node(`<button class="btn btn-block" style="margin-top:10px;background:var(--care-tint);color:var(--care);" onclick="App.confirmClear()">${svg('trash',16,'var(--care)')} Delete my data</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Close</button>`));
+  overlay(inner);
+}
+function openAbout(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="width:54px;height:54px;border-radius:17px;background:var(--sage);display:grid;place-items:center;">${svg('leaf',27,'#fff')}</div>`));
+  inner.appendChild(node(`<div class="h1" style="font-size:24px;margin-top:14px;">About Sprout</div>`));
+  inner.appendChild(node(`<p style="font-size:14.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">Sprout is an AI life companion that meets you where you are — learning your life stage and what’s going on, then offering gentle, evidence-informed support and a library of practices from many therapeutic approaches.</p>`));
+  inner.appendChild(node(`<div style="margin-top:14px;padding:14px;border-radius:16px;background:var(--care-tint);display:flex;gap:10px;">${svg('shield',18,'var(--care)')}<div style="font-size:13px;color:var(--care);line-height:1.45;"><b>Lumi is a companion and coach, not a therapist or crisis service.</b> For diagnosis or treatment of serious conditions, please reach a licensed professional. In a crisis, tap “Get help”.</div></div>`));
+  inner.appendChild(node(`<div style="margin-top:14px;font-size:12.5px;color:var(--ink-faint);line-height:1.6;">Prototype v0.3 · for demonstration only<br>Designed around clinical governance, privacy and evidence-based content.</div>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.closeOverlay()">Close</button>`));
+  overlay(inner);
+}
+function openStagePicker(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Where are you in life?</div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:6px;">This tunes what Sprout shows you.</div>`));
+  const grid=node('<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;"></div>');
+  STAGES.forEach(s=>{const on=S.profile.stage===s.id; grid.appendChild(node(`<button class="tap" onclick="App.setStageProfile('${s.id}')" style="text-align:left;border-radius:18px;padding:14px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage-tint)':'var(--card)'};">${svg(s.icon,22,on?'var(--sage)':'var(--ink-soft)')}<div style="font-size:14px;font-weight:600;margin-top:10px;">${s.label}</div></button>`));});
+  inner.appendChild(grid);
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.closeOverlay()">Done</button>`));
+  overlay(inner);
+}
+function confirmClear(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="width:48px;height:48px;border-radius:15px;background:var(--care-tint);display:grid;place-items:center;">${svg('trash',23,'var(--care)')}</div>`));
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;margin-top:12px;">Delete your data?</div>`));
+  inner.appendChild(node(`<p style="font-size:14px;color:var(--ink-soft);margin-top:8px;line-height:1.5;">This clears your reflections, check-ins, chat with Lumi and progress. Your profile stays. This can’t be undone.</p>`));
+  inner.appendChild(node(`<button class="btn btn-block" style="margin-top:18px;background:var(--care);color:#fff;" onclick="App.clearData()">Yes, delete it</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Keep my data</button>`));
+  overlay(inner);
+}
+
+/* --------------------- themes / age / features -------------------- */
+function openThemes(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--sage-tint);">${svg('sun',23,'var(--sage)')}</div><div class="h1" style="font-size:22px;">Themes</div></div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">Pick what feels like you. Every theme works for everyone — choose freely.</div>`));
+  const grid=node('<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;"></div>');
+  Object.keys(THEMES).forEach(id=>{
+    const th=THEMES[id], on=S.settings.theme===id, v=th.v;
+    grid.appendChild(node(`<button class="tap" onclick="App.setTheme('${id}')" style="text-align:left;border-radius:18px;overflow:hidden;border:2px solid ${on?'var(--sage)':'var(--line)'};background:${v.card};">
+      <div style="height:62px;background:${v.paper};position:relative;">
+        <span style="position:absolute;left:12px;top:14px;width:26px;height:26px;border-radius:99px;background:${v.sage};"></span>
+        <span style="position:absolute;left:32px;top:14px;width:26px;height:26px;border-radius:99px;background:${v.clay};border:2px solid ${v.paper};"></span>
+        <span style="position:absolute;left:52px;top:14px;width:26px;height:26px;border-radius:99px;background:${v.dusk};border:2px solid ${v.paper};"></span>
+        ${on?`<span style="position:absolute;right:10px;top:10px;width:22px;height:22px;border-radius:99px;background:var(--sage);display:grid;place-items:center;">${svg('check',13,'#fff')}</span>`:''}
+      </div>
+      <div style="padding:10px 12px;display:flex;align-items:center;gap:6px;background:${v.card};"><span style="font-size:13.5px;font-weight:600;color:${v.ink};">${th.label}</span>${th.dark?`<span style="font-size:10px;color:${v['ink-faint']};">· dark</span>`:''}</div>
+    </button>`));
+  });
+  inner.appendChild(grid);
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.closeOverlay()">Done</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+function openAgeDisplay(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--sage-tint);">${svg('user',23,'var(--sage)')}</div><div class="h1" style="font-size:22px;">Age & display</div></div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">This gently tunes Sprout’s tone, a suggested theme, and text size. You can still override anything.</div>`));
+  const list=node('<div style="margin-top:16px;display:grid;gap:10px;"></div>');
+  AGE_GROUPS.forEach(a=>{const on=S.settings.ageGroup===a.id;
+    list.appendChild(node(`<button class="tap" onclick="App.setAgeGroup('${a.id}')" style="text-align:left;display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage-tint)':'var(--card)'};">
+      <div class="iconwrap" style="width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--sage) 14%,transparent);">${svg(a.icon,19,'var(--sage)')}</div>
+      <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${a.label}</div><div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.4;">${a.note}</div></div>
+      ${on?svg('check',18,'var(--sage)'):''}</button>`));
+  });
+  inner.appendChild(list);
+
+  inner.appendChild(node(`<div style="margin-top:18px;margin-bottom:8px;"><div class="eyebrow">Text size</div></div>`));
+  const sizes=[['Standard',1],['Large',1.15],['Largest',1.3]];
+  const seg=node('<div style="display:flex;gap:8px;"></div>');
+  sizes.forEach(([lab,val])=>{const on=Math.abs((S.settings.textSize||1)-val)<0.001;
+    seg.appendChild(node(`<button class="tap" onclick="App.setTextSize(${val})" style="flex:1;padding:12px 6px;border-radius:14px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage)':'var(--card)'};color:${on?'#fff':'var(--ink)'};font-weight:600;font-size:${13*val>16?16:13*val}px;">${lab}</button>`));
+  });
+  inner.appendChild(seg);
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="App.closeOverlay()">Done</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+function renderFeatures(){
+  const liveN = FEATURES.filter(f=>f.live).length;
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">100 features</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">The full vision, mapped across life stages. <b style="color:var(--sage);">${liveN} are live</b> in this prototype; the rest are the roadmap.</div>`));
+
+  const auds=['All','Live','E','T','Y','A','P','C','O'];
+  const labelOf=k=> k==='All'?'All': k==='Live'?'Live now': AUD[k];
+  const chips=node('<div style="display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:4px;"></div>');
+  auds.forEach(k=>{const on=(S.featFilter||'All')===k;
+    chips.appendChild(node(`<button class="pill tap" style="white-space:nowrap;padding:8px 14px;font-size:12.5px;${on?'background:var(--sage);color:#fff;border-color:var(--sage);font-weight:600;':'color:var(--ink-soft);'}" onclick="App.setFeat('${k}')">${labelOf(k)}</button>`));
+  });
+  wrap.appendChild(chips);
+
+  const f=S.featFilter||'All';
+  const shown=FEATURES.filter(x=> f==='All'?true : f==='Live'?x.live : x.a===f);
+  const list=node('<div style="margin-top:14px;display:grid;gap:8px;"></div>');
+  shown.forEach(x=>{
+    list.appendChild(node(`<div class="card" style="display:flex;align-items:center;gap:12px;padding:13px 15px;">
+      <div class="iconwrap" style="width:30px;height:30px;border-radius:9px;background:${x.live?'var(--sage-tint)':'var(--paper2)'};">${x.live?svg('check',16,'var(--sage)'):svg('plus',15,'var(--ink-faint)')}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:600;line-height:1.25;">${x.n}</div><div style="font-size:11.5px;color:var(--ink-faint);margin-top:1px;">${AUD[x.a]} · ${x.c}</div></div>
+      ${x.live?`<span style="font-size:10.5px;font-weight:700;color:var(--sage);letter-spacing:.04em;">LIVE</span>`:`<span style="font-size:10.5px;color:var(--ink-faint);">soon</span>`}
+    </div>`));
+  });
+  wrap.appendChild(list);
+  wrap.appendChild(node(`<div style="margin-top:16px;font-size:11.5px;color:var(--ink-faint);text-align:center;line-height:1.5;">Depth over checkbox count: the goal isn’t 100 shallow features, it’s a few done with real care — and a clear path for the rest.</div>`));
+  return wrap;
+}
+
+let breatheTimer=null;
+function openBreathe(){
+  const inner=node('<div style="padding:26px 22px 30px;text-align:center;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Take a breath</div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:6px;">Follow the circle. In for 4, hold 4, out for 4.</div>`));
+  inner.appendChild(node(`
+    <div style="height:240px;display:grid;place-items:center;margin-top:10px;">
+      <div style="position:relative;width:200px;height:200px;display:grid;place-items:center;">
+        <div id="breatheCircle" style="width:90px;height:90px;border-radius:99px;background:radial-gradient(circle at 35% 30%, var(--sage-mid), var(--sage));box-shadow:0 0 40px color-mix(in srgb,var(--sage) 45%,transparent);"></div>
+        <div id="breathePhase" style="position:absolute;font-size:16px;font-weight:600;color:#fff;">Breathe in</div>
+      </div>
+    </div>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="App.closeBreathe()">I feel steadier</button>`));
+  inner.appendChild(node(`<style>
+    @keyframes breatheAnim {
+      0%   { transform:scale(1);   }
+      25%  { transform:scale(2.1); }
+      50%  { transform:scale(2.1); }
+      75%  { transform:scale(1);   }
+      100% { transform:scale(1);   }
+    }
+    #breatheCircle{ animation:breatheAnim 16s ease-in-out infinite; }
+  </style>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+
+  const phases=[['Breathe in',0],['Hold',4],['Breathe out',8],['Hold',12]];
+  const phaseEl=()=>document.getElementById('breathePhase');
+  const tick=()=>{
+    const el=phaseEl(); if(!el){ clearInterval(breatheTimer); return; }
+    const s=Math.floor((Date.now()/1000)%16);
+    let label='Breathe in';
+    for(const [lab,start] of phases){ if(s>=start) label=lab; }
+    el.textContent=label;
+  };
+  clearInterval(breatheTimer); breatheTimer=setInterval(tick,250); tick();
+}
+
+/* --------------------------- rewards screen ------------------------- */
+function renderRewards(){
+  const info=levelInfo(S.xp), R=34, cx=42, cy=42, circ=2*Math.PI*R;
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Your growth</div>`));
+
+  wrap.appendChild(node(`
+    <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:16px;background:linear-gradient(160deg,var(--sage-tint),var(--card) 75%);">
+      <div style="position:relative;width:84px;height:84px;">
+        <svg width="84" height="84"><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--line)" stroke-width="7"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--sage)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-info.pct)}" transform="rotate(-90 ${cx} ${cy})"/></svg>
+        <div style="position:absolute;inset:0;display:grid;place-items:center;">${svg('sprout',30,'var(--sage)')}</div>
+      </div>
+      <div style="flex:1;">
+        <div class="eyebrow" style="color:var(--sage);">Level ${info.i+1}</div>
+        <div class="h1" style="font-size:22px;margin-top:2px;">${info.name}</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-top:4px;">${S.xp} XP${info.next?` · ${info.toNext} to ${info.next}`:' · top level'}</div>
+      </div>
+    </div>`));
+
+  const streak=4;
+  wrap.appendChild(node(`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;">
+    ${['flame','var(--clay)',streak,'day streak','check','var(--sage)',S.done.length,'tended','pen','var(--dusk)',S.keepsakes.length,'reflections'].reduce((a,_,i,arr)=> i%4===0? a+`<div class="card" style="padding:14px;text-align:center;">${svg(arr[i],20,arr[i+1])}<div style="font-family:var(--serif);font-size:24px;margin-top:5px;">${arr[i+2]}</div><div style="font-size:11px;color:var(--ink-faint);">${arr[i+3]}</div></div>`:a,'')}
+  </div>`));
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;"><div class="eyebrow">Badge collection</div><span style="font-size:11.5px;color:var(--ink-faint);">${S.earnedBadges.length} of ${BADGES.length}</span></div>`));
+  const grid=node('<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"></div>');
+  BADGES.forEach(b=>{
+    const got=S.earnedBadges.includes(b.id);
+    grid.appendChild(node(`<div class="card" style="padding:14px 10px;text-align:center;${got?'':'opacity:.55;'}">
+      <div class="iconwrap" style="width:46px;height:46px;border-radius:14px;margin:0 auto;background:${got?'var(--sage-tint)':'var(--paper2)'};">${svg(got?b.icon:'lock',22,got?'var(--sage)':'var(--ink-faint)')}</div>
+      <div style="font-size:12.5px;font-weight:600;margin-top:8px;line-height:1.2;">${b.name}</div>
+      <div style="font-size:10.5px;color:var(--ink-faint);margin-top:2px;line-height:1.25;">${b.desc}</div>
+    </div>`));
+  });
+  wrap.appendChild(grid);
+
+  wrap.appendChild(node(`<div style="margin-top:18px;padding:14px;border-radius:16px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;">
+    ${svg('heart',17,'var(--sage)')}
+    <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.45;">XP and badges are here to gently cheer you on. They’re <b>cosmetic only — no cash value, no coins, no crypto</b>. Your wellbeing isn’t a game to win or a thing to trade.</div>
+  </div>`));
+  return wrap;
+}
+
+/* --------------------------- accessibility -------------------------- */
+function openA11y(){
+  const st=S.settings;
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--dusk-tint);">${svg('user',23,'var(--dusk)')}</div><div class="h1" style="font-size:22px;">Accessibility</div></div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">Sprout should work for everyone. Adjust anything here.</div>`));
+
+  const prefs=node('<div class="card" style="margin-top:16px;"></div>');
+  const pref=(key,icon,label,desc)=>`<div class="pref">${svg(icon,19,'var(--ink-soft)')}<div style="flex:1;"><div style="font-size:14.5px;font-weight:500;">${label}</div>${desc?`<div style="font-size:12px;color:var(--ink-faint);margin-top:1px;">${desc}</div>`:''}</div><button class="switch ${st[key]?'on':''}" onclick="App.a11yToggle('${key}')"><span class="knob"></span></button></div>`;
+  prefs.innerHTML = pref('readableFont','book','Readable font','A low-vision–friendly typeface (Atkinson Hyperlegible)')
+    + pref('reduceMotion','activity','Reduce motion','Turns off animations and confetti');
+  inner.appendChild(prefs);
+
+  inner.appendChild(node(`<div style="margin-top:18px;margin-bottom:8px;"><div class="eyebrow">Text size</div></div>`));
+  const sizes=[['Standard',1],['Large',1.15],['Largest',1.3]];
+  const seg=node('<div style="display:flex;gap:8px;"></div>');
+  sizes.forEach(([lab,val])=>{const on=Math.abs((S.settings.textSize||1)-val)<0.001;
+    seg.appendChild(node(`<button class="tap" onclick="App.setTextSizeA11y(${val})" style="flex:1;padding:12px 6px;border-radius:14px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage)':'var(--card)'};color:${on?'#fff':'var(--ink)'};font-weight:600;font-size:${13*val>16?16:13*val}px;">${lab}</button>`));
+  });
+  inner.appendChild(seg);
+
+  inner.appendChild(node(`<button class="btn btn-soft btn-block" style="margin-top:16px;" onclick="App.setThemeFromA11y('contrast')">${svg('sun',16,'var(--sage)')} Use high-contrast theme</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Done</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ============================ COACHES ============================ */
+const COACHES = [
+  {id:'career',   name:'Career coach',      icon:'brief',   c:'var(--honey)', aud:'Young adults',
+   sys:'You are a warm, practical career coach. Help with direction, applications, and confidence. One small step at a time; never a lecture.',
+   hi:'I can help you think through work — direction, applications, interviews, or that stuck feeling. What’s on your mind?',
+   st:['I feel stuck in my career','Prep me for an interview','How do I ask for a raise?']},
+  {id:'interview',name:'Mock interview',    icon:'message', c:'var(--sage)', aud:'Young adults',
+   sys:'You run gentle mock interviews. Ask ONE common interview question at a time, wait for the answer, then give brief, kind, specific feedback before the next.',
+   hi:'Let’s practise. I’ll ask one question at a time and give kind feedback. Ready for the first?',
+   st:['Start a mock interview','Questions for my field','Help me tell my story']},
+  {id:'resume',   name:'Résumé helper',     icon:'pen',     c:'var(--dusk)', aud:'Young adults',
+   sys:'You help improve résumés and cover letters: stronger bullet points, clearer impact, kinder self-description. Practical and specific.',
+   hi:'Paste a bullet point or tell me the role — I’ll help you make it sharper and truer.',
+   st:['Improve a bullet point','Write a cover-letter opener','What are my strengths?']},
+  {id:'confidence',name:'Confidence',        icon:'sparkles',c:'var(--clay)', aud:'Teens',
+   sys:'You are a gentle confidence coach for a young person. Build self-belief through small wins and kinder self-talk. Never patronising.',
+   hi:'Confidence grows from small wins, not big leaps. What’s something you’d love to feel braver about?',
+   st:['I compare myself to others','Help me before a presentation','I doubt myself a lot']},
+  {id:'exam',     name:'Exam stress',       icon:'grad',    c:'var(--sage)', aud:'Teens',
+   sys:'You help a student manage exam stress: study rhythm, calming the body, and realistic expectations. Practical and reassuring.',
+   hi:'Exams are a lot. Let’s make a calm plan and settle the nerves. What’s coming up?',
+   st:['I’m panicking about exams','Help me make a study plan','I can’t focus']},
+  {id:'social',   name:'Social anxiety',    icon:'user',    c:'var(--dusk)', aud:'Teens',
+   sys:'You gently coach someone through social anxiety using small exposure steps and self-compassion. Never dismiss the fear.',
+   hi:'Social stuff can feel huge. We’ll take it in tiny, doable steps. What situation feels hard right now?',
+   st:['I dread talking to people','Help me make a friend','Everyone’s judging me']},
+  {id:'bully',    name:'Bullying support',  icon:'shield',  c:'var(--care)', aud:'Teens',
+   sys:'You support a young person facing bullying: validate, help them feel less alone, and encourage telling a trusted adult. Take safety seriously.',
+   hi:'I’m really glad you reached out. You don’t deserve to be treated badly. Do you want to tell me what’s been happening?',
+   st:['I’m being bullied','I feel alone','Should I tell someone?']},
+  {id:'relationship',name:'Relationship coach',icon:'heart', c:'var(--clay)', aud:'Couples',
+   sys:'You coach on relationships: communication, repair, and connection. Balanced, never taking sides; protect the relationship.',
+   hi:'Relationships take real work. I can help with communication, conflict, or reconnecting. What’s going on?',
+   st:['We keep fighting','We feel distant','How do I bring something up?']},
+  {id:'conflict', name:'Conflict & repair', icon:'waves',   c:'var(--dusk)', aud:'Couples',
+   sys:'You help someone cool down and repair after conflict: name feelings, take a pause, and reconnect. Focus on the issue, not the attack.',
+   hi:'Arguments happen. Repair matters more than winning. Want to talk through what happened?',
+   st:['We just argued','Help me apologise','I’m still angry']},
+  {id:'parenting',name:'Parenting coach',   icon:'baby',    c:'var(--sage)', aud:'Parents',
+   sys:'You coach parents with warmth and no judgement: child behaviour, connection, and parent self-compassion. Practical, realistic.',
+   hi:'Parenting is the hardest job. No judgement here. What’s the challenge today?',
+   st:['My child won’t listen','I feel like a bad parent','Tantrum survival tips']},
+  {id:'child',    name:'Child behaviour',   icon:'compass', c:'var(--honey)', aud:'Parents',
+   sys:'You give gentle, evidence-informed guidance on child behaviour and development. Practical strategies, one at a time.',
+   hi:'Tell me the behaviour and your child’s age — we’ll find a gentle way through.',
+   st:['Bedtime battles','Screen-time struggles','Sibling fighting']},
+  {id:'newbaby',  name:'New-baby support',  icon:'moon',    c:'var(--dusk)', aud:'Parents',
+   sys:'You support exhausted new parents: sleep survival, self-compassion, and spotting when to seek help. Gentle and reassuring.',
+   hi:'On no sleep, “good enough” is the goal. How are you holding up?',
+   st:['I’m so exhausted','Is this normal?','I feel overwhelmed']},
+  {id:'grief',    name:'Grief companion',   icon:'leaf',    c:'var(--sage)', aud:'Older adults',
+   sys:'You gently accompany someone through grief. There’s no timeline and no fixing — just presence, validation, and small comforts.',
+   hi:'Grief comes in waves. I’m here to sit with you, at whatever pace you need. Would you like to tell me about them?',
+   st:['I lost someone','The waves are heavy today','How do I keep going?']},
+  {id:'loneliness',name:'Loneliness',        icon:'sun',     c:'var(--clay)', aud:'Older adults',
+   sys:'You support someone feeling lonely: validate, ease isolation, and encourage small connections. Warm and unhurried.',
+   hi:'Loneliness is painful, and reaching out took courage. What’s today been like for you?',
+   st:['I feel so alone','My days feel empty','How do I meet people?']},
+];
+const coachById = id => COACHES.find(c=>c.id===id);
+
+/* ========================= SOUNDSCAPES (Web Audio) ========================= */
+let audioCtx=null, soundNodes=null, soundActive=null;
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } } if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
+function noiseBuffer(ctx){ const len=ctx.sampleRate*2, b=ctx.createBuffer(1,len,ctx.sampleRate), d=b.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1; return b; }
+const SCAPES=[
+  {id:'rain', name:'Rain', icon:'waves'}, {id:'waves', name:'Ocean', icon:'waves'},
+  {id:'wind', name:'Wind', icon:'wind'},  {id:'brown', name:'Deep noise', icon:'volume'},
+  {id:'night',name:'Night', icon:'moon'},
+];
+function playSound(id){
+  const ctx=ensureAudio(); if(!ctx) return; stopSound();
+  const src=ctx.createBufferSource(); src.buffer=noiseBuffer(ctx); src.loop=true;
+  const filt=ctx.createBiquadFilter(), gain=ctx.createGain();
+  const base=(S.settings.soundVol??0.5)*0.35; gain.gain.value=base;
+  let lfo=null, lfoGain=null;
+  if(id==='rain'){ filt.type='highpass'; filt.frequency.value=1200; }
+  else if(id==='waves'){ filt.type='lowpass'; filt.frequency.value=600; lfo=ctx.createOscillator(); lfo.frequency.value=0.12; lfoGain=ctx.createGain(); lfoGain.gain.value=base*0.85; lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(); }
+  else if(id==='wind'){ filt.type='bandpass'; filt.frequency.value=500; filt.Q.value=0.6; lfo=ctx.createOscillator(); lfo.frequency.value=0.08; lfoGain=ctx.createGain(); lfoGain.gain.value=280; lfo.connect(lfoGain); lfoGain.connect(filt.frequency); lfo.start(); }
+  else if(id==='brown'){ filt.type='lowpass'; filt.frequency.value=220; }
+  else { filt.type='lowpass'; filt.frequency.value=380; }
+  src.connect(filt); filt.connect(gain); gain.connect(ctx.destination); src.start();
+  soundNodes={src,gain,lfo}; soundActive=id;
+}
+function stopSound(){ if(soundNodes){ try{soundNodes.src.stop();}catch(e){} try{soundNodes.lfo&&soundNodes.lfo.stop();}catch(e){} } soundNodes=null; soundActive=null; }
+function setSoundVol(v){ S.settings.soundVol=v; if(soundNodes) soundNodes.gain.gain.value=v*0.35; saveState(); }
+
+/* ============================ FOCUS TIMER ============================ */
+let focusTimer=null, focusEnd=0, focusPaused=0, focusRunning=false;
+function focusTick(){ const el=document.getElementById('focusClock'); if(!el){ clearInterval(focusTimer); return; } const left=Math.max(0, Math.round((focusEnd-Date.now())/1000)); el.textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`; if(left<=0){ clearInterval(focusTimer); focusRunning=false; try{ if(S.settings.sound){ const c=ensureAudio(); if(c){ const o=c.createOscillator(),g=c.createGain(); o.frequency.value=660; g.gain.value=.0001; o.connect(g); g.connect(c.destination); o.start(); g.gain.exponentialRampToValueAtTime(.2, c.currentTime+.05); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+1.2); o.stop(c.currentTime+1.3);} } }catch(e){} const s=document.getElementById('focusState'); if(s) s.textContent='Done — nice focus.'; } }
+
+/* ========================= VOICE (Web Speech API) ========================= */
+const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+const voiceSupported = !!SRClass;
+let activeRec=null;
+function startListening(cb){
+  if(!SRClass){ cb.err&&cb.err('unsupported'); return; }
+  try{
+    const r=new SRClass(); r.lang=S.settings.voiceLang||'en-US'; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
+    let done=false;
+    r.onresult=e=>{ let interim='',fin=''; for(let i=e.resultIndex;i<e.results.length;i++){ const res=e.results[i]; if(res.isFinal) fin+=res[0].transcript; else interim+=res[0].transcript; } if(interim) cb.interim&&cb.interim(interim); if(fin&&!done){ done=true; try{r.stop();}catch(_){}; activeRec=null; cb.final&&cb.final(fin.trim()); } };
+    r.onerror=e=>{ done=true; activeRec=null; cb.err&&cb.err(e.error||'error'); };
+    r.onend=()=>{ activeRec=null; cb.end&&cb.end(); };
+    activeRec=r; r.start();
+  }catch(e){ cb.err&&cb.err('error'); }
+}
+function stopListening(){ try{ activeRec&&activeRec.stop(); }catch(e){} activeRec=null; }
+function speak(t){ if(!('speechSynthesis'in window)||!t) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=.98; u.lang=S.settings.voiceLang||'en-US'; speechSynthesis.speak(u); }catch(e){} }
+function stopSpeaking(){ try{ 'speechSynthesis'in window && speechSynthesis.cancel(); }catch(e){} }
+function runVoiceCommand(text){
+  const t=(text||'').toLowerCase().trim(); if(!t) return {ok:false};
+  const go=(tab,l)=>{ App.closeOverlay(); S.tab=tab; render(); return {ok:true,label:l}; };
+  if(flagsCrisis(t)||/\b(crisis|emergency|help me now|hotline|helpline)\b/.test(t)){ App.closeOverlay(); openCrisis(); return {ok:true,label:'Opening support'}; }
+  if(/\b(home|today)\b/.test(t)) return go('today','Home');
+  if(/\b(breath|breathe|calm|panic|relax)\b/.test(t)){ App.closeOverlay(); openBreathe(); return {ok:true,label:'Breathing'}; }
+  if(/\b(check ?in|log mood|how am i|mood)\b/.test(t)) return go('checkin','Check-in');
+  if(/\b(talk|chat|lumi|companion|vent)\b/.test(t)) return go('companion','Talk to Lumi');
+  if(/\b(tool ?kit|tools|practice|exercise|therap)\b/.test(t)) return go('toolkit','Toolkit');
+  if(/\b(pattern|insight|chart)\b/.test(t)) return go('insights','Patterns');
+  if(/\b(report)\b/.test(t)) return go('reports','Reports');
+  if(/\b(habit)\b/.test(t)) return go('habits','Habits');
+  if(/\b(sound|rain|ocean|noise|ambient)\b/.test(t)){ App.closeOverlay(); openSounds(); return {ok:true,label:'Soundscapes'}; }
+  if(/\b(focus|timer|pomodoro|study)\b/.test(t)){ App.closeOverlay(); openFocus(); return {ok:true,label:'Focus timer'}; }
+  if(/\b(coach)\b/.test(t)) return go('more','Coaches & tools');
+  if(/\b(reward|badge|growth|xp|level)\b/.test(t)) return go('rewards','Your growth');
+  if(/\b(profile|account)\b/.test(t)) return go('profile','Profile');
+  if(/\b(feature)\b/.test(t)) return go('features','Features');
+  if(/\bdark mode\b/.test(t)){ S.settings.theme='midnight'; App.closeOverlay(); render(); return {ok:true,label:'Dark theme'}; }
+  if(/\b(light mode|light theme)\b/.test(t)){ S.settings.theme='sage'; App.closeOverlay(); render(); return {ok:true,label:'Light theme'}; }
+  const th=Object.keys(THEMES).find(id=> t.includes(THEMES[id].label.toLowerCase()));
+  if(th){ S.settings.theme=th; App.closeOverlay(); render(); return {ok:true,label:THEMES[th].label+' theme'}; }
+  const sm=t.match(/search (?:for )?(.+)/); if(sm){ App.closeOverlay(); S.tab='toolkit'; S.search=sm[1]; render(); return {ok:true,label:'Searching'}; }
+  if(/\b(read|speak|say)\b.*\b(that|it|aloud|last)\b/.test(t)){ const last=[...S.chat].reverse().find(m=>m.role==='assistant'); if(last){ speak(last.content); return {ok:true,label:'Reading aloud'}; } }
+  if(/\bstop\b/.test(t)){ stopSpeaking(); return {ok:true,label:'Stopped'}; }
+  return {ok:false, text:t};
+}
+
+/* --------------------------- More / hub screen -------------------------- */
+function renderMore(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Coaches & tools</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Specialised coaches and hands-on tools for whatever you’re facing.</div>`));
+
+  wrap.appendChild(node(`<div style="margin-top:18px;margin-bottom:10px;"><div class="eyebrow">Wellbeing tools</div></div>`));
+  const tools=[
+    {t:'Soundscapes', d:'Rain, ocean, wind', icon:'waves', c:'var(--dusk)', a:'App.openSounds()'},
+    {t:'Focus timer', d:'Study in calm sprints', icon:'clock', c:'var(--honey)', a:'App.openFocus()'},
+    {t:'Habit builder', d:'Tiny daily habits', icon:'check', c:'var(--sage)', a:"App.go('habits')"},
+    {t:'Sleep', d:'Wind down & log rest', icon:'moon', c:'var(--dusk)', a:'App.openSleep()'},
+    {t:'Reports', d:'Weekly & monthly insight', icon:'trending', c:'var(--clay)', a:"App.go('reports')"},
+    {t:'Meditations', d:'Guided calm', icon:'leaf', c:'var(--sage)', a:"App.gotoApproach('mind')"},
+  ];
+  const tg=node('<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;"></div>');
+  tools.forEach(x=>tg.appendChild(node(`<button class="card tap" style="text-align:left;padding:15px;" onclick="${x.a}"><div class="iconwrap" style="width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,${x.c} 13%,transparent);">${svg(x.icon,21,x.c)}</div><div style="font-size:14.5px;font-weight:600;margin-top:10px;">${x.t}</div><div style="font-size:12px;color:var(--ink-faint);margin-top:2px;">${x.d}</div></button>`)));
+  wrap.appendChild(tg);
+
+  wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow">Coaches</div><div style="font-size:12px;color:var(--ink-faint);margin-top:3px;">Each opens Lumi in a focused mode for that topic.</div></div>`));
+  const cg=node('<div style="display:grid;gap:10px;"></div>');
+  COACHES.forEach(co=>cg.appendChild(node(`<button class="card tap" style="display:flex;align-items:center;gap:13px;width:100%;text-align:left;" onclick="App.startCoach('${co.id}')"><div class="iconwrap" style="width:44px;height:44px;border-radius:13px;background:color-mix(in srgb,${co.c} 13%,transparent);">${svg(co.icon,21,co.c)}</div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${co.name}</div><div style="font-size:12px;color:var(--ink-faint);">${co.aud}</div></div>${svg('chevR',18,'var(--ink-faint)')}</button>`)));
+  wrap.appendChild(cg);
+  return wrap;
+}
+
+/* ------------------------------ soundscapes sheet ----------------------- */
+function openSounds(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--dusk-tint);">${svg('waves',23,'var(--dusk)')}</div><div class="h1" style="font-size:22px;">Soundscapes</div></div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">Soft, generated ambience for focus, calm, or sleep.</div>`));
+  const grid=node('<div id="scapeGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:16px;"></div>');
+  SCAPES.forEach(s=>{ const on=soundActive===s.id; grid.appendChild(node(`<button class="tap" onclick="App.toggleScape('${s.id}')" data-scape="${s.id}" style="padding:16px;border-radius:16px;border:1.5px solid ${on?'var(--sage)':'var(--line)'};background:${on?'var(--sage-tint)':'var(--card)'};display:flex;flex-direction:column;align-items:center;gap:8px;">${svg(on?'volume':s.icon,24,on?'var(--sage)':'var(--ink-soft)')}<span style="font-size:13px;font-weight:600;color:${on?'var(--sage)':'var(--ink)'};">${s.name}</span></button>`)); });
+  inner.appendChild(grid);
+  inner.appendChild(node(`<div style="margin-top:18px;display:flex;align-items:center;gap:10px;">${svg('volume',18,'var(--ink-soft)')}<input type="range" min="0" max="1" step="0.05" value="${S.settings.soundVol??0.5}" oninput="App.soundVol(this.value)" style="flex:1;accent-color:var(--sage);"/></div>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.stopSounds()">Stop & close</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ------------------------------ focus timer sheet ----------------------- */
+function openFocus(){
+  const inner=node('<div style="padding:24px 22px 28px;text-align:center;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Focus timer</div>`));
+  inner.appendChild(node(`<div id="focusState" style="font-size:13px;color:var(--ink-soft);margin-top:6px;">Calm, single-tasking sprints.</div>`));
+  inner.appendChild(node(`<div id="focusClock" style="font-family:var(--serif);font-size:64px;margin:14px 0;color:var(--ink);">25:00</div>`));
+  const presets=node('<div style="display:flex;gap:8px;justify-content:center;"></div>');
+  [[25,'25 min'],[50,'50 min'],[15,'15 min'],[5,'5 min']].forEach(([m,l])=>presets.appendChild(node(`<button class="pill tap" onclick="App.focusSet(${m})" style="padding:8px 13px;font-size:12.5px;">${l}</button>`)));
+  inner.appendChild(presets);
+  inner.appendChild(node(`<div style="display:flex;gap:10px;margin-top:18px;"><button id="focusBtn" class="btn btn-primary btn-block" onclick="App.focusToggle()">Start</button><button class="btn btn-ghost" onclick="App.focusReset()">${svg('x',16)}</button></div>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+  focusEnd=Date.now()+25*60000; focusRunning=false;
+}
+
+/* ------------------------------ habits screen --------------------------- */
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function habitStreak(h){ let s=0; const d=new Date(); for(;;){ const k=d.toISOString().slice(0,10); if(h.days&&h.days[k]){ s++; d.setDate(d.getDate()-1); } else break; } return s; }
+function renderHabits(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('more')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Daily habits</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Tiny, kind habits. Miss a day — no guilt, just begin again.</div>`));
+  const k=todayKey();
+  const list=node('<div style="margin-top:16px;display:grid;gap:10px;"></div>');
+  if(S.habits.length===0) list.appendChild(node(`<div style="padding:24px;text-align:center;color:var(--ink-faint);font-size:14px;">No habits yet. Add one below — start with something laughably small.</div>`));
+  S.habits.forEach((h,i)=>{ const done=h.days&&h.days[k]; const st=habitStreak(h);
+    list.appendChild(node(`<div class="card" style="display:flex;align-items:center;gap:12px;">
+      <button class="tap" onclick="App.toggleHabit(${i})" style="width:34px;height:34px;border-radius:99px;border:2px solid ${done?'var(--sage)':'var(--line)'};background:${done?'var(--sage)':'transparent'};display:grid;place-items:center;">${done?svg('check',18,'#fff'):''}</button>
+      <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">${h.name}</div><div style="font-size:12px;color:var(--ink-faint);">${st>0?svg('flame',12,'var(--clay)')+' '+st+' day'+(st>1?'s':''):'tap to start'}</div></div>
+      <button class="tap" onclick="App.removeHabit(${i})" style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;">${svg('x',15,'var(--ink-faint)')}</button>
+    </div>`)); });
+  wrap.appendChild(list);
+  wrap.appendChild(node(`<div style="display:flex;gap:8px;margin-top:14px;"><input id="habitInput" placeholder="New habit (e.g. 5-min walk)" style="flex:1;padding:12px 14px;border-radius:14px;font-size:14px;" onkeydown="if(event.key==='Enter')App.addHabit()"/><button class="btn btn-primary" onclick="App.addHabit()">${svg('plus',18,'#fff')}</button></div>`));
+  return wrap;
+}
+
+/* ------------------------------ sleep sheet ----------------------------- */
+function sleepScore(hours,quality){ const h=Math.max(0,10-Math.abs(8-hours)*2.2); return Math.round(Math.min(100, (h/10)*55 + (quality/5)*45)); }
+function openSleep(){
+  const recent=S.sleep.slice(0,7);
+  const avg=recent.length? Math.round(recent.reduce((a,b)=>a+b.score,0)/recent.length):null;
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:46px;height:46px;border-radius:14px;background:var(--dusk-tint);">${svg('moon',23,'var(--dusk)')}</div><div class="h1" style="font-size:22px;">Sleep</div></div>`));
+  if(avg!==null) inner.appendChild(node(`<div style="margin-top:12px;padding:14px;border-radius:16px;background:var(--dusk-tint);display:flex;align-items:center;gap:12px;"><div style="font-family:var(--serif);font-size:30px;color:var(--dusk);">${avg}</div><div style="font-size:13px;color:var(--ink-soft);">Your recent sleep score (${recent.length} night${recent.length>1?'s':''}). Aim for calm, not perfect.</div></div>`));
+  inner.appendChild(node(`<div style="margin-top:16px;margin-bottom:6px;"><div class="eyebrow">Log last night</div></div>`));
+  inner.appendChild(node(`<div style="font-size:12.5px;color:var(--ink-soft);">Hours slept: <b id="slpH">8</b></div><input id="slpHours" type="range" min="3" max="11" step="0.5" value="8" oninput="document.getElementById('slpH').textContent=this.value" style="width:100%;accent-color:var(--dusk);margin-top:6px;"/>`));
+  inner.appendChild(node(`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">How rested? <b id="slpQ">3</b>/5</div><input id="slpQual" type="range" min="1" max="5" step="1" value="3" oninput="document.getElementById('slpQ').textContent=this.value" style="width:100%;accent-color:var(--dusk);margin-top:6px;"/>`));
+  inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="App.logSleep()">Save last night</button>`));
+  inner.appendChild(node(`<button class="btn btn-soft btn-block" style="margin-top:10px;" onclick="App.closeOverlay();App.openBreathe();">${svg('wind',16,'var(--sage)')} Wind-down breathing</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Close</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ------------------------------ reports screen -------------------------- */
+function reportStats(days){
+  const cut=Date.now()-days*86400000;
+  const h=S.history.filter(x=>x.ts>=cut);
+  if(!h.length) return null;
+  const avg=h.reduce((a,b)=>a+(b.mood||0),0)/h.length;
+  const firstHalf=h.slice(Math.floor(h.length/2)), secondHalf=h.slice(0,Math.floor(h.length/2));
+  const am=arr=>arr.length?arr.reduce((a,b)=>a+(b.mood||0),0)/arr.length:0;
+  const trend = am(secondHalf)-am(firstHalf); // recent minus older (history is newest-first)
+  const tags={}; h.forEach(x=>(x.feels||[]).forEach(f=>tags[f]=(tags[f]||0)+1));
+  const topTags=Object.entries(tags).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+  return {count:h.length, avg, trend, topTags};
+}
+function burnoutSignal(){
+  const r=reportStats(14); const s=S.sleep.slice(0,7);
+  const lowSleep = s.length? (s.reduce((a,b)=>a+b.score,0)/s.length)<55 : false;
+  if(!r) return null;
+  const risk = (r.avg<2.6?1:0) + (r.trend<-0.3?1:0) + (lowSleep?1:0) + (r.topTags.some(t=>['tired','overwhelmed','stuck','numb'].includes(t))?1:0);
+  return {level: risk>=3?'high':risk>=2?'watch':'low', r};
+}
+function renderReports(){
+  const wk=reportStats(7), mo=reportStats(30), bo=burnoutSignal();
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('more')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Your reports</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Gentle summaries from your real check-ins.</div>`));
+  const moodWord=m=> m>=4.3?'good':m>=3.3?'okay–good':m>=2.6?'mixed':m>=1.8?'low':'heavy';
+  const trendWord=t=> t>0.25?'lifting':t<-0.25?'dipping':'steady';
+  const card=(title,st)=> st? `<div class="card" style="margin-top:12px;"><div class="eyebrow" style="color:var(--sage);">${title}</div><div style="font-family:var(--serif);font-size:20px;margin-top:6px;">Mostly ${moodWord(st.avg)} · trend ${trendWord(st.trend)}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">${st.count} check-in${st.count>1?'s':''}.${st.topTags.length?' Common: '+st.topTags.join(', ')+'.':''}</div></div>` : `<div class="card" style="margin-top:12px;color:var(--ink-faint);font-size:13.5px;">Not enough check-ins yet for this period — keep going.</div>`;
+  wrap.appendChild(node(card('This week', wk)));
+  wrap.appendChild(node(card('This month', mo)));
+
+  if(bo){
+    const map={high:{c:'var(--care)',t:'Worth a gentle pause',b:'A few signals point to running low — lighter days, more rest, and reaching for support would be kind right now. If it persists, a professional can really help.'},
+      watch:{c:'var(--honey)',t:'Keep an eye in',b:'Some early signs of strain. A little extra rest and self-kindness this week could help.'},
+      low:{c:'var(--sage)',t:'Holding steady',b:'No strong signs of burnout right now. Keep tending to yourself.'}};
+    const m=map[bo.level];
+    wrap.appendChild(node(`<div style="margin-top:22px;margin-bottom:10px;"><div class="eyebrow" style="color:${m.c};">Burnout signal</div></div>`));
+    wrap.appendChild(node(`<div class="card" style="border-color:${m.c}55;"><div style="display:flex;gap:11px;align-items:flex-start;">${svg('activity',20,m.c)}<div><div style="font-size:15.5px;font-weight:600;">${m.t}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:5px;line-height:1.5;">${m.b}</div></div></div></div>`));
+    wrap.appendChild(node(`<div style="margin-top:12px;font-size:11.5px;color:var(--ink-faint);text-align:center;line-height:1.5;">A gentle heuristic from your own data — not a diagnosis. If you’re struggling, please talk to someone you trust or a professional.</div>`));
+  } else {
+    wrap.appendChild(node(`<div style="margin-top:20px;font-size:12.5px;color:var(--ink-faint);text-align:center;">Log a few check-ins and a burnout signal will appear here.</div>`));
+  }
+  return wrap;
+}
+
+/* ------------------------------ voice overlay --------------------------- */
+function openVoice(){
+  const inner=node('<div style="padding:26px 22px 30px;text-align:center;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Voice</div>`));
+  if(!voiceSupported){ inner.appendChild(node(`<p style="font-size:14px;color:var(--ink-soft);margin-top:12px;line-height:1.5;">Voice isn’t available in this browser. Try Chrome, Edge, or Safari, and allow microphone access.</p>`)); inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.closeOverlay()">Close</button>`)); overlay(inner); return; }
+  inner.appendChild(node(`<div id="voiceHint" style="font-size:13px;color:var(--ink-soft);margin-top:6px;">Tap the mic, then say a command.</div>`));
+  inner.appendChild(node(`<div style="height:150px;display:grid;place-items:center;margin-top:6px;"><button id="voiceMic" class="tap" onclick="App.voiceToggle()" style="width:100px;height:100px;border-radius:99px;background:var(--sage);display:grid;place-items:center;box-shadow:0 10px 30px color-mix(in srgb,var(--sage) 40%,transparent);">${svg('mic',38,'#fff')}</button></div>`));
+  inner.appendChild(node(`<div id="voiceText" style="font-family:var(--serif);font-size:17px;min-height:24px;color:var(--ink);line-height:1.3;"></div>`));
+  inner.appendChild(node(`<div id="voiceResult" style="margin-top:8px;"></div>`));
+  inner.appendChild(node(`<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:7px;justify-content:center;">${['“open toolkit”','“breathe”','“check in”','“soundscapes”','“get help”','“dark mode”'].map(x=>`<span style="font-size:11.5px;color:var(--ink-faint);background:var(--paper2);border:1px solid var(--line);padding:6px 10px;border-radius:99px;">${x}</span>`).join('')}</div>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="App.voiceClose()">Close</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ------------------------------ App ------------------------------- */
+const App = {
+  step(n){ S.step=n; render(); },
+  pickStage(id){ S.profile.stage=id; render(); },
+  toggleEvent(e){ const a=S.profile.events; S.profile.events = a.includes(e)?a.filter(x=>x!==e):[...a,e]; render(); },
+  finish(){ const inp=$('#nameInput'); if(inp) S.profile.name=inp.value.trim(); S.onboarded=true; S.tab='today'; render(); },
+  go(tab){ S.tab=tab; render(); },
+  openTool(id){ pendingPhoto=null; pendingNote=''; pendingToolId=id; openTool(id); },
+  pickPhoto(input){
+    const f = input.files && input.files[0]; if(!f) return;
+    const note = $('#keepNote'); if(note) pendingNote = note.value;   // preserve typed note
+    const r = new FileReader();
+    r.onload = e => { pendingPhoto = e.target.result; App.closeOverlay(); openTool(pendingToolId); };
+    r.readAsDataURL(f);
+  },
+  removePhoto(){ const note=$('#keepNote'); if(note) pendingNote=note.value; pendingPhoto=null; App.closeOverlay(); openTool(pendingToolId); },
+  completeTool(id, keepsake){
+    const already = S.done.includes(id);
+    if(!already) S.done.push(id);
+    let gained = already ? 5 : XP.practice;   // small XP for repeats, full for new
+    if(keepsake){
+      const noteEl=$('#keepNote'); const note = noteEl ? noteEl.value.trim() : '';
+      if(pendingPhoto || note){
+        const t = TOOLS.find(x=>x.id===id);
+        S.keepsakes.unshift({ id, title:t.t, mod:t.mod, img:pendingPhoto, note, date:new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}) });
+        gained += XP.reflection;
+      }
+    }
+    pendingPhoto=null; pendingNote=''; pendingToolId=null;
+    grantXP(gained);
+    App.closeOverlay(); render();
+  },
+  openReflection(i){ openReflection(i); },
+  deleteKeepsake(i){ S.keepsakes.splice(i,1); App.closeOverlay(); render(); },
+  async reflect(idx){
+    const k = S.keepsakes[idx]; if(!k) return;
+    const btn=$('#reflectBtn'); if(btn){ btn.disabled=true; btn.innerHTML='<span class="dot"></span> Lumi is looking…'; }
+    let reply='';
+    try{
+      const content=[];
+      const parts = dataUrlParts(k.img);
+      if(parts) content.push({type:'image', source:{type:'base64', media_type:parts.media, data:parts.data}});
+      content.push({type:'text', text:`Exercise: ${k.title}. ${k.note?('My note: '+k.note):'No note added.'} Please reflect kindly.`});
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:400, system:reflectPrompt(), messages:[{role:'user', content}] })
+      });
+      const data=await res.json();
+      reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    }catch(e){ reply=''; }
+    if(!reply) reply=fallbackReflection(k.note);
+    k.reflection=reply; saveState();
+    App.closeOverlay(); openReflection(idx);
+  },
+  openCrisis(){ openCrisis(); },
+  closeOverlay(){ document.querySelectorAll('.overlay').forEach(o=>o.remove()); },
+  openMenu(){ openDrawer(); },
+  goMore(){ App.closeOverlay(); S.tab='more'; render(); },
+  // coaches
+  startCoach(id){ const co=coachById(id); if(!co) return; S.coach=id; S.chat=[{role:'assistant',content:co.hi}]; App.closeOverlay(); S.tab='companion'; render(); },
+  exitCoach(){ S.coach=null; S.chat=[]; render(); },
+  coachStarter(text){ const inp=$('#chatInput'); if(inp){ inp.value=text; App.grow(inp); App.send(); } },
+  // soundscapes
+  openSounds(){ App.closeOverlay(); openSounds(); },
+  toggleScape(id){ if(soundActive===id){ stopSound(); } else { playSound(id); } App.closeOverlay(); openSounds(); },
+  soundVol(v){ setSoundVol(parseFloat(v)); },
+  stopSounds(){ stopSound(); App.closeOverlay(); },
+  // focus
+  openFocus(){ App.closeOverlay(); openFocus(); },
+  focusSet(min){ focusEnd=Date.now()+min*60000; focusRunning=false; clearInterval(focusTimer); const el=document.getElementById('focusClock'); if(el) el.textContent=`${String(min).padStart(2,'0')}:00`; const b=document.getElementById('focusBtn'); if(b) b.textContent='Start'; const s=document.getElementById('focusState'); if(s) s.textContent='Calm, single-tasking sprints.'; },
+  focusToggle(){ const b=document.getElementById('focusBtn'); if(focusRunning){ focusRunning=false; clearInterval(focusTimer); focusPaused=focusEnd-Date.now(); if(b)b.textContent='Resume'; } else { if(focusPaused>0){ focusEnd=Date.now()+focusPaused; focusPaused=0; } else if(focusEnd<=Date.now()){ focusEnd=Date.now()+25*60000; } focusRunning=true; clearInterval(focusTimer); focusTimer=setInterval(focusTick,250); focusTick(); if(b)b.textContent='Pause'; const s=document.getElementById('focusState'); if(s) s.textContent='Focusing — you’ve got this.'; } },
+  focusReset(){ focusRunning=false; focusPaused=0; clearInterval(focusTimer); App.closeOverlay(); },
+  // habits
+  addHabit(){ const inp=$('#habitInput'); const v=inp?inp.value.trim():''; if(!v) return; S.habits.push({id:'h'+Date.now(), name:v, days:{}}); saveState(); render(); },
+  toggleHabit(i){ const h=S.habits[i]; if(!h) return; h.days=h.days||{}; const k=todayKey(); if(h.days[k]) delete h.days[k]; else { h.days[k]=true; grantXP(5); } saveState(); render(); },
+  removeHabit(i){ S.habits.splice(i,1); saveState(); render(); },
+  // sleep
+  openSleep(){ App.closeOverlay(); openSleep(); },
+  logSleep(){ const hrs=parseFloat(($('#slpHours')||{}).value||8), q=parseInt(($('#slpQual')||{}).value||3); const sc=sleepScore(hrs,q); S.sleep.unshift({date:todayKey(), hours:hrs, quality:q, score:sc, ts:Date.now()}); if(S.sleep.length>60) S.sleep.pop(); grantXP(6); App.closeOverlay(); toast('Sleep logged · score '+sc,'moon'); render(); },
+  // voice
+  openVoice(){ openVoice(); },
+  voiceToggle(){ if(activeRec){ stopListening(); App.voiceUI('idle'); return; } App.voiceUI('listening'); startListening({ interim:t=>{const el=$('#voiceText'); if(el) el.textContent=t;}, final:t=>{ App.voiceUI('idle'); App.voiceHandle(t); }, err:e=>{ App.voiceUI('err',e); }, end:()=>{} }); },
+  voiceHandle(t){ const el=$('#voiceText'); if(el&&t) el.textContent='“'+t+'”'; if(!t) return; const res=runVoiceCommand(t); const r=$('#voiceResult'); if(res.ok){ if(r) r.innerHTML=`<div style="color:var(--sage);font-weight:600;font-size:14px;">${svg('check',15,'var(--sage)')} ${res.label}</div>`; } else if(r){ App._vt=t; r.innerHTML=`<div style="font-size:13px;color:var(--ink-soft);">No command matched. <button onclick="App.voiceToLumi()" style="color:var(--sage);font-weight:600;background:none;">Tell Lumi instead →</button></div>`; } },
+  voiceToLumi(){ const t=App._vt||''; App.closeOverlay(); S.tab='companion'; render(); const inp=$('#chatInput'); if(inp){ inp.value=t; App.grow(inp); inp.focus(); } },
+  voiceUI(state,err){ const mic=$('#voiceMic'), hint=$('#voiceHint'); if(mic){ mic.style.background=state==='listening'?'var(--clay)':'var(--sage)'; mic.classList.toggle('mic-pulse', state==='listening'); } if(hint){ hint.textContent = state==='listening'?'Listening… tap to stop.' : state==='err'?(err==='not-allowed'?'Microphone blocked — allow access and retry.':'Didn’t catch that — try again.') : 'Tap the mic, then say a command.'; } },
+  voiceClose(){ stopListening(); App.closeOverlay(); },
+  // chat dictation + read-aloud
+  dictate(){ if(activeRec){ stopListening(); App.micUI(false); return; } App.micUI(true); const base=($('#chatInput')||{}).value||''; startListening({ interim:t=>{const inp=$('#chatInput'); if(inp){ inp.value=(base?base+' ':'')+t; App.grow(inp);} }, final:t=>{ const inp=$('#chatInput'); if(inp){ inp.value=(base?base+' ':'')+t; App.grow(inp);} App.micUI(false); if(S.settings.autoSend) App.send(); }, err:()=>{ App.micUI(false); }, end:()=>{ App.micUI(false); } }); },
+  micUI(on){ const b=$('#micBtn'); if(b){ b.style.background=on?'var(--clay)':'transparent'; b.querySelector('svg')&&(b.querySelector('svg').style.color=on?'#fff':'var(--ink-soft)'); } },
+  toggleSpeak(){ S.settings.speakReplies=!S.settings.speakReplies; saveState(); stopSpeaking(); render(); },
+  goRewards(){ App.closeOverlay(); S.tab='rewards'; render(); },
+  openA11y(){ App.closeOverlay(); openA11y(); },
+  a11yToggle(key){ S.settings[key]=!S.settings[key]; saveState(); applyDisplay(); App.closeOverlay(); openA11y(); },
+  setTextSizeA11y(v){ S.settings.textSize=v; saveState(); applyDisplay(); App.closeOverlay(); openA11y(); },
+  setThemeFromA11y(id){ S.settings.theme=id; saveState(); applyDisplay(); App.closeOverlay(); openA11y(); },
+  openThemes(){ App.closeOverlay(); openThemes(); },
+  setTheme(id){ S.settings.theme=id; saveState(); applyDisplay(); App.closeOverlay(); openThemes(); },
+  openAgeDisplay(){ App.closeOverlay(); openAgeDisplay(); },
+  setAgeGroup(id){ const a=AGE_GROUPS.find(x=>x.id===id); S.settings.ageGroup=id; if(a){ S.settings.theme=a.theme; S.settings.textSize=a.text; } saveState(); applyDisplay(); App.closeOverlay(); openAgeDisplay(); },
+  setTextSize(v){ S.settings.textSize=v; saveState(); applyDisplay(); App.closeOverlay(); openAgeDisplay(); },
+  goFeatures(){ App.closeOverlay(); S.tab='features'; render(); },
+  setFeat(k){ S.featFilter=k; render(); },
+  toggleFav(id){ const a=S.favorites; S.favorites=a.includes(id)?a.filter(x=>x!==id):[...a,id]; saveState(); render(); },
+  search(v){ S.search=v; render(); const el=$('#toolSearch'); if(el){ el.focus(); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} } },
+  logCheckin(){ S.history.unshift({ date:new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}), mood:S.checkin.mood, feels:[...S.checkin.feels], ts:Date.now() }); if(S.history.length>180) S.history.pop(); S.currentMood=S.checkin.mood; S.checkin.phase='result'; grantXP(XP.checkin); render(); },
+  openBreathe(){ openBreathe(); },
+  closeBreathe(){ clearInterval(breatheTimer); breatheTimer=null; S.counters.breaths=(S.counters.breaths||0)+1; grantXP(XP.breath); App.closeOverlay(); render(); },
+  openKebab(){ openKebab(); },
+  toggleGroup(id){ S.openGroups[id]=!S.openGroups[id]; App.closeOverlay(); openDrawer(); },
+  goProfile(){ App.closeOverlay(); S.tab='profile'; render(); },
+  goReflections(){ App.closeOverlay(); S.tab='today'; render(); const sc=$('#scroll'); if(sc) sc.scrollTop=sc.scrollHeight; },
+  gotoApproach(m){ App.closeOverlay(); S.tab='toolkit'; S.modFilter=m; render(); },
+  openSettings(){ App.closeOverlay(); openSettings(); },
+  openPrivacy(){ App.closeOverlay(); openPrivacy(); },
+  openAbout(){ App.closeOverlay(); openAbout(); },
+  openStagePicker(){ openStagePicker(); },
+  setStageProfile(id){ S.profile.stage=id; App.closeOverlay(); render(); },
+  toggleEventProfile(e){ const a=S.profile.events; S.profile.events=a.includes(e)?a.filter(x=>x!==e):[...a,e]; render(); },
+  setName(v){ S.profile.name=v; saveState(); },
+  toggle(key, fromSheet){ S.settings[key]=!S.settings[key]; saveState(); if(fromSheet){ App.closeOverlay(); openSettings(); } else { render(); } },
+  exportData(){
+    App.closeOverlay();
+    const payload={ profile:S.profile, settings:S.settings, done:S.done,
+      keepsakes:S.keepsakes.map(k=>({title:k.title, mod:k.mod, note:k.note, date:k.date, photo:k.img?'[image kept on device]':null})),
+      exportedAt:new Date().toISOString() };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='sprout-my-data.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  },
+  confirmClear(){ App.closeOverlay(); confirmClear(); },
+  clearData(){ S.keepsakes=[]; S.done=[]; S.chat=[]; S.crisisFlag=false; S.checkin={phase:'mood',mood:null,feels:[]}; App.closeOverlay(); render(); },
+  setMod(m){ S.modFilter=m; render(); },
+  pickMood(v){ S.checkin.mood=v; render(); },
+  toggleFeel(f){ const a=S.checkin.feels; S.checkin.feels=a.includes(f)?a.filter(x=>x!==f):[...a,f]; render(); },
+  checkPhase(p){ S.checkin.phase=p; render(); },
+  resetCheck(){ S.checkin={phase:'mood',mood:null,feels:[]}; render(); },
+  grow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; const b=$('#sendBtn'); if(b) b.style.background=el.value.trim()?'var(--sage)':'var(--line)'; },
+  keydown(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); App.send(); } },
+  async send(){
+    const inp=$('#chatInput'); if(!inp) return;
+    const text=inp.value.trim(); if(!text) return;
+    if(flagsCrisis(text)){ S.crisisFlag=true; }
+    S.chat.push({role:'user',content:text});
+    inp.value=''; App.grow(inp);
+    const sc=$('#chatScroll');
+    if(S.crisisFlag && !$('#crisisBanner')){ render(); }
+    else { sc.appendChild(bubble('user',text)); }
+    const sc2=$('#chatScroll'); sc2.scrollTop=sc2.scrollHeight;
+    const typing=node(`<div id="typing" style="display:flex;align-items:center;gap:8px;margin-left:36px;color:var(--ink-faint);font-size:13px;"><span class="dot"></span> Lumi is thinking…</div>`);
+    sc2.appendChild(typing); sc2.scrollTop=sc2.scrollHeight;
+
+    let reply='';
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000,
+          system:systemPrompt(S.profile),
+          messages:S.chat.slice(-12).map(m=>({role:m.role,content:m.content})) })
+      });
+      const data=await res.json();
+      reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    }catch(e){ reply=''; }
+    if(!reply) reply=fallbackReply(text);
+    S.chat.push({role:'assistant',content:reply});
+    saveState();
+    if(S.settings.speakReplies) speak(reply);
+    const tp=$('#typing'); if(tp) tp.remove();
+    const sc3=$('#chatScroll'); if(sc3){ sc3.appendChild(bubble('assistant',reply)); sc3.scrollTop=sc3.scrollHeight; }
+  },
+};
+window.App = App;
+hydrate();
+render();
+
+/* register service worker for offline + installability (only works when hosted over https/localhost) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
