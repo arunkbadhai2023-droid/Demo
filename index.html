@@ -174,6 +174,11 @@
 const ICONS = {
   leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.52-4.48 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
   sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8Z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2Z"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  video:'<path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/>',
+  star:'<path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2Z"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
   moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
   wind:'<path d="M12.8 19.6A2 2 0 1 0 14 16H2M17.5 8a2.5 2.5 0 1 1 2 4H2M9.8 4.4A2 2 0 1 1 11 8H2"/>',
@@ -394,10 +399,12 @@ const S = {
   keepsakes:[], favorites:[], history:[],   // private reflections, bookmarked tools, real check-ins
   xp:0, earnedBadges:[], counters:{breaths:0}, currentMood:null,   // rewards + mood aura
   coach:null, habits:[], sleep:[],   // coach mode, habit tracker, sleep log
+  groups:[], activeGroup:null,       // facilitator groups + sessions
+  hr:{connected:false, bpm:null},    // wearable heart rate (transient)
   settings:{ reminders:true, sound:true, photoFeatures:true, shareInsights:false, under18:false,
              theme:'sage', textSize:1, ageGroup:null, bgArt:true,
              readableFont:false, reduceMotion:false,
-             soundVol:0.5, speakReplies:false, autoSend:false, voiceLang:'en-US' },
+             soundVol:0.5, speakReplies:false, autoSend:false, voiceLang:'en-US', plus:false },
   openGroups:{ space:true, approaches:false, settings:false, support:false },
 };
 // transient state for the open tool sheet
@@ -414,7 +421,7 @@ function saveState(){
   store.write({ onboarded:S.onboarded, profile:S.profile, settings:S.settings, done:S.done,
     keepsakes:S.keepsakes, favorites:S.favorites, history:S.history,
     xp:S.xp, earnedBadges:S.earnedBadges, counters:S.counters, currentMood:S.currentMood,
-    habits:S.habits, sleep:S.sleep });
+    habits:S.habits, sleep:S.sleep, groups:S.groups });
 }
 function hydrate(){
   const s=store.read(); if(!s) return;
@@ -431,6 +438,7 @@ function hydrate(){
   if(typeof s.currentMood==='number') S.currentMood=s.currentMood;
   if(Array.isArray(s.habits)) S.habits=s.habits;
   if(Array.isArray(s.sleep)) S.sleep=s.sleep;
+  if(Array.isArray(s.groups)) S.groups=s.groups;
 }
 
 /* =============================== THEMES =============================== */
@@ -750,7 +758,7 @@ const FEATURES = [
  'Soundscapes for focus & sleep','Career coach','Mock interview practice','Résumé review','Confidence training',
  'Exam-stress programme','Study focus timer','Social-anxiety practice','Bullying support coach','Relationship daily check-in',
  'Conflict cool-down coach','Parenting coach','Child-behaviour guidance','Parent self-compassion track','Co-parenting planner',
- 'New-baby sleep survival','Grief companion','Loneliness check-ins'
+ 'New-baby sleep survival','Grief companion','Loneliness check-ins','Moderated group challenges'
 ].forEach(nm=>{ const f=FEATURES.find(x=>x.n===nm); if(f) f.live=1; });
 const $ = sel => document.querySelector(sel);
 const phone = $('#phone');
@@ -767,7 +775,7 @@ function render(){
   phone.appendChild(renderTopbar());
   const scroll = node('<div class="scroll" id="scroll"></div>');
   scroll.style.zoom = String(S.settings.textSize||1);
-  const map = {today:renderToday, companion:renderCompanion, checkin:renderCheckin, toolkit:renderToolkit, insights:renderInsights, profile:renderProfile, features:renderFeatures, rewards:renderRewards, more:renderMore, habits:renderHabits, reports:renderReports};
+  const map = {today:renderToday, companion:renderCompanion, checkin:renderCheckin, toolkit:renderToolkit, insights:renderInsights, profile:renderProfile, features:renderFeatures, rewards:renderRewards, more:renderMore, habits:renderHabits, reports:renderReports, groups:renderGroups, group:renderGroup, connect:renderConnect, therapists:renderTherapists, plus:renderPlus};
   scroll.appendChild(map[S.tab]());
   phone.appendChild(scroll);
   phone.appendChild(renderTabbar());
@@ -1331,7 +1339,7 @@ function openDrawer(){
 
   d.appendChild(node(`
     <button class="tap" onclick="App.goProfile()" style="text-align:left;padding:24px 18px 16px;background:linear-gradient(160deg,var(--sage-tint),var(--paper) 85%);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px;width:100%;">
-      <div style="width:48px;height:48px;border-radius:16px;background:var(--sage);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:22px;">${initial}</div>
+      <div style="flex-shrink:0;">${avatarHTML(48)}</div>
       <div style="flex:1;"><div style="font-family:var(--serif);font-size:19px;">${p.name||'Your profile'}</div><div style="font-size:12.5px;color:var(--ink-soft);">${stageLabel} · view profile</div></div>
       ${svg('chevR',18,'var(--ink-faint)')}
     </button>`));
@@ -1350,8 +1358,12 @@ function openDrawer(){
   }
   nav.appendChild(group('space','Your space',[
     {icon:'user',  label:'Profile',           action:"App.goProfile()"},
+    {icon:'sparkles', label:'Sprout Plus',      action:"App.goPlus()", color:'var(--honey)', right:S.settings.plus?'active':'upgrade'},
     {icon:'sprout',label:'Your growth · rewards', action:"App.goRewards()", color:'var(--sage)', right:'Lv '+(levelIndex(S.xp)+1)},
     {icon:'compass', label:'Coaches & tools',   action:"App.goMore()", color:'var(--honey)'},
+    {icon:'users',  label:'Groups & sessions',  action:"App.goGroups()", color:'var(--sage)', right:String(S.groups.length||'')},
+    {icon:'activity',label:'Connect devices',    action:"App.goConnect()", color:'var(--care)', right:S.hr.connected?'live':''},
+    {icon:'video',  label:'Work with a therapist',action:"App.goTherapists()", color:'var(--dusk)'},
     {icon:'pen',   label:'Reflections',        action:"App.goReflections()", right:String(S.keepsakes.length||'')},
     {icon:'sparkles', label:'All features',     action:"App.goFeatures()", color:'var(--honey)'},
   ]));
@@ -1401,7 +1413,7 @@ function renderProfile(){
   wrap.appendChild(node(`<div class="h1" style="font-size:27px;margin-top:10px;">Profile</div>`));
 
   const card=node('<div class="card" style="margin-top:14px;"></div>');
-  card.appendChild(node(`<div style="display:flex;align-items:center;gap:14px;"><div style="width:60px;height:60px;border-radius:20px;background:var(--sage);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:28px;">${initial}</div><div style="flex:1;"><div class="eyebrow">Your name</div><input id="profName" value="${p.name||''}" placeholder="Add your name" oninput="App.setName(this.value)" style="width:100%;font-family:var(--serif);font-size:20px;border:none;background:transparent;padding:2px 0;margin-top:3px;"/></div></div>`));
+  card.appendChild(node(`<div style="display:flex;align-items:center;gap:14px;"><button class="tap" onclick="App.openAvatar()" style="position:relative;background:none;padding:0;border:none;">${avatarHTML(60)}<span style="position:absolute;right:-3px;bottom:-3px;width:24px;height:24px;border-radius:99px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;">${svg('camera',13,'var(--ink-soft)')}</span></button><div style="flex:1;"><div class="eyebrow">Your name</div><input id="profName" value="${p.name||''}" placeholder="Add your name" oninput="App.setName(this.value)" style="width:100%;font-family:var(--serif);font-size:20px;border:none;background:transparent;padding:2px 0;margin-top:3px;"/></div></div>`));
   card.appendChild(node(`<button class="tap" onclick="App.openStagePicker()" style="margin-top:14px;width:100%;display:flex;align-items:center;gap:11px;padding:13px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);text-align:left;"><div class="iconwrap" style="width:36px;height:36px;border-radius:11px;background:var(--sage-tint);">${svg('compass',18,'var(--sage)')}</div><div style="flex:1;"><div style="font-size:12px;color:var(--ink-faint);">Life stage</div><div style="font-size:14.5px;font-weight:600;">${stageLabel}</div></div>${svg('chevR',17,'var(--ink-faint)')}</button>`));
   wrap.appendChild(card);
 
@@ -1989,6 +2001,303 @@ function openVoice(){
   const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
 }
 
+/* ============================ AVATARS / PHOTO ============================ */
+const AVATARS = [
+  {bg:'var(--sage)', icon:'sprout'}, {bg:'var(--clay)', icon:'sun'},
+  {bg:'var(--dusk)', icon:'moon'},   {bg:'var(--honey)', icon:'sparkles'},
+  {bg:'#5FA892', icon:'leaf'},       {bg:'#C77FA8', icon:'heart'},
+  {bg:'#4F6B9A', icon:'waves'},      {bg:'#7B9A4F', icon:'compass'},
+];
+function avatarHTML(size){
+  const p=S.profile, r=Math.round(size*0.32);
+  if(p.avatar) return `<img src="${p.avatar}" alt="Your avatar" style="width:${size}px;height:${size}px;border-radius:${r}px;object-fit:cover;display:block;"/>`;
+  if(typeof p.avatarPreset==='number'){ const a=AVATARS[p.avatarPreset]||AVATARS[0]; return `<div style="width:${size}px;height:${size}px;border-radius:${r}px;background:${a.bg};display:grid;place-items:center;">${svg(a.icon,Math.round(size*0.5),'#fff')}</div>`; }
+  const init=(((p.name||'You').trim()[0])||'Y').toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;border-radius:${r}px;background:var(--sage);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:${Math.round(size*0.46)}px;">${init}</div>`;
+}
+function openAvatar(){
+  const minor = S.settings.under18 || !S.settings.photoFeatures;
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Your avatar</div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">Pick a look, or upload a photo. Your avatar shows on your profile${S.groups.length?' and in your groups':''}.</div>`));
+  inner.appendChild(node(`<div style="display:flex;justify-content:center;margin:16px 0;">${avatarHTML(84)}</div>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin-bottom:8px;">Illustrated avatars</div>`));
+  const grid=node('<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;"></div>');
+  AVATARS.forEach((a,i)=>{ const on=(!S.profile.avatar && S.profile.avatarPreset===i);
+    grid.appendChild(node(`<button class="tap" onclick="App.setAvatarPreset(${i})" style="aspect-ratio:1;border-radius:16px;background:${a.bg};display:grid;place-items:center;border:3px solid ${on?'var(--ink)':'transparent'};">${svg(a.icon,26,'#fff')}</button>`)); });
+  inner.appendChild(grid);
+  inner.appendChild(node(`<div class="eyebrow" style="margin:18px 0 8px;">Photo</div>`));
+  if(minor){
+    inner.appendChild(node(`<div style="padding:13px 15px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;">${svg('shield',18,'var(--sage)')}<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.45;">Photo uploads are turned off for under-18 accounts to keep you safe — an illustrated avatar is perfect. (A guardian can change this in Privacy.)</div></div>`));
+  } else {
+    inner.appendChild(node(`<label class="btn btn-soft btn-block" style="cursor:pointer;">${svg('camera',17,'var(--sage)')} Upload a photo<input type="file" accept="image/*" onchange="App.uploadAvatar(this)" style="display:none;"/></label>`));
+    if(S.profile.avatar) inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;color:var(--care);" onclick="App.removeAvatar()">Remove photo</button>`));
+    inner.appendChild(node(`<div style="font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.4;">Stays on your device in this prototype. Only upload a photo of yourself.</div>`));
+  }
+  inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="App.closeOverlay()">Done</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ======================= FACILITATOR GROUPS + VIDEO ======================= */
+function slugify(s){ return (s||'group').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24)||'group'; }
+function groupById(id){ return S.groups.find(g=>g.id===id); }
+function renderGroups(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Groups & sessions</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Facilitator-led circles with group chat and live video sessions.</div>`));
+  wrap.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="App.openCreateGroup()">${svg('plus',18,'#fff')} Create a group</button>`));
+  const list=node('<div style="margin-top:16px;display:grid;gap:11px;"></div>');
+  if(S.groups.length===0) list.appendChild(node(`<div style="padding:24px;text-align:center;color:var(--ink-faint);font-size:14px;line-height:1.5;">No groups yet. As a facilitator, create one and enroll members — a support circle, a workshop, a coaching cohort.</div>`));
+  S.groups.forEach(g=>{ const next=(g.sessions||[]).filter(s=>s.ts>Date.now()).sort((a,b)=>a.ts-b.ts)[0];
+    list.appendChild(node(`<button class="card tap" style="text-align:left;width:100%;" onclick="App.openGroup('${g.id}')">
+      <div style="display:flex;align-items:center;gap:11px;"><div class="iconwrap" style="width:42px;height:42px;border-radius:13px;background:var(--sage-tint);">${svg('users',21,'var(--sage)')}</div>
+      <div style="flex:1;"><div style="font-size:15.5px;font-weight:600;">${g.name}</div><div style="font-size:12px;color:var(--ink-faint);">${(g.members||[]).length} member${(g.members||[]).length!==1?'s':''}${next?' · next session '+next.whenLabel:''}</div></div>${svg('chevR',18,'var(--ink-faint)')}</div>
+    </button>`)); });
+  wrap.appendChild(list);
+  wrap.appendChild(node(`<div style="margin-top:18px;padding:13px 15px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;">${svg('shield',17,'var(--sage)')}<div style="font-size:12px;color:var(--ink-soft);line-height:1.45;">In a real deployment, facilitators are <b>verified</b> and members opt in. Members are visible to each other; groups mixing adults and minors need extra safeguards. Live sync between people needs the backend — here the group is a working demo on your device.</div></div>`));
+  return wrap;
+}
+function renderGroup(){
+  const g=groupById(S.activeGroup); if(!g){ S.tab='groups'; return renderGroups(); }
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('groups')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} All groups</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:24px;margin-top:10px;">${g.name}</div>`));
+  if(g.desc) wrap.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">${g.desc}</div>`));
+
+  // sessions
+  wrap.appendChild(node(`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:8px;"><div class="eyebrow">Video sessions</div><button class="tap" onclick="App.openSchedule('${g.id}')" style="font-size:12.5px;color:var(--sage);font-weight:600;background:none;">${svg('plus',14,'var(--sage)')} Schedule</button></div>`));
+  const sess=(g.sessions||[]).sort((a,b)=>a.ts-b.ts);
+  if(sess.length===0) wrap.appendChild(node(`<div style="font-size:13px;color:var(--ink-faint);padding:4px 2px;">No sessions scheduled yet.</div>`));
+  sess.forEach(s=>{ const upcoming=s.ts>Date.now()-3600000;
+    wrap.appendChild(node(`<div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:9px;${upcoming?'':'opacity:.6;'}">
+      <div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--dusk-tint);">${svg('video',20,'var(--dusk)')}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${s.title}</div><div style="font-size:12px;color:var(--ink-faint);">${s.whenLabel}</div></div>
+      <button class="tap" onclick="App.copyLink('${s.link}')" aria-label="Copy link" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);">${svg('link',16,'var(--ink-soft)')}</button>
+      <button class="btn btn-primary" style="padding:9px 14px;font-size:13px;" onclick="App.joinSession('${s.link}')">Join</button>
+    </div>`)); });
+
+  // members
+  wrap.appendChild(node(`<div class="eyebrow" style="margin-top:20px;margin-bottom:8px;">Members (${(g.members||[]).length})</div>`));
+  const mem=node('<div style="display:flex;flex-wrap:wrap;gap:8px;"></div>');
+  (g.members||[]).forEach((m,i)=>mem.appendChild(node(`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--paper2);border:1px solid var(--line);padding:6px 10px;border-radius:99px;font-size:12.5px;">${m.role==='facilitator'?svg('star',13,'var(--honey)'):svg('user',13,'var(--ink-faint)')} ${m.name}${m.role==='facilitator'?' · facilitator':''} <button onclick="App.removeMember('${g.id}',${i})" style="background:none;color:var(--ink-faint);margin-left:2px;">${svg('x',12,'var(--ink-faint)')}</button></span>`)));
+  wrap.appendChild(mem);
+  wrap.appendChild(node(`<div style="display:flex;gap:8px;margin-top:10px;"><input id="memInput" placeholder="Enroll a member (name)" style="flex:1;padding:11px 14px;border-radius:13px;font-size:13.5px;" onkeydown="if(event.key==='Enter')App.addMember('${g.id}')"/><button class="btn btn-soft" onclick="App.addMember('${g.id}')">${svg('plus',17,'var(--sage)')}</button></div>`));
+
+  // group chat
+  wrap.appendChild(node(`<div class="eyebrow" style="margin-top:22px;margin-bottom:8px;">Group chat</div>`));
+  const chat=node('<div style="display:grid;gap:9px;max-height:280px;overflow-y:auto;padding:2px;"></div>');
+  const msgs=g.messages||[];
+  if(msgs.length===0) chat.appendChild(node(`<div style="font-size:12.5px;color:var(--ink-faint);padding:6px 2px;">No messages yet. Post a welcome, or ask Lumi to open the circle.</div>`));
+  msgs.slice(-40).forEach(m=>{ const me=m.who==='You'; const lumi=m.who==='Lumi';
+    chat.appendChild(node(`<div style="display:flex;flex-direction:column;align-items:${me?'flex-end':'flex-start'};">
+      <div style="font-size:10.5px;color:var(--ink-faint);margin:0 6px 2px;">${lumi?'Lumi · facilitator':m.who}</div>
+      <div style="max-width:82%;padding:9px 13px;border-radius:15px;font-size:13.5px;line-height:1.4;background:${me?'var(--sage)':lumi?'var(--dusk-tint)':'var(--paper2)'};color:${me?'#fff':'var(--ink)'};border:1px solid ${me?'transparent':'var(--line)'};">${m.text}</div>
+    </div>`)); });
+  wrap.appendChild(chat);
+  wrap.appendChild(node(`<div style="display:flex;gap:8px;margin-top:10px;"><input id="grpInput" placeholder="Message the group…" style="flex:1;padding:11px 14px;border-radius:13px;font-size:13.5px;" onkeydown="if(event.key==='Enter')App.groupPost('${g.id}')"/><button class="btn btn-primary" onclick="App.groupPost('${g.id}')">${svg('send',17,'#fff')}</button></div>`));
+  wrap.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:9px;" onclick="App.groupFacilitator('${g.id}')">${svg('sparkles',15,'var(--sage)')} Ask Lumi to facilitate</button>`));
+  return wrap;
+}
+function openCreateGroup(){
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Create a group</div>`));
+  inner.appendChild(node(`<div style="font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.45;">You’ll be the facilitator. Enroll members and schedule sessions once it’s created.</div>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin:16px 0 6px;">Group name</div><input id="grpName" placeholder="e.g. Tuesday Anxiety Circle" style="width:100%;padding:12px 14px;border-radius:13px;font-size:14px;"/>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin:14px 0 6px;">Description (optional)</div><textarea id="grpDesc" rows="2" placeholder="What’s this group for?" style="width:100%;padding:12px 14px;border-radius:13px;font-size:14px;"></textarea>`));
+  inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:18px;" onclick="App.createGroup()">Create group</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Cancel</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+function openSchedule(gid){
+  const d=new Date(Date.now()+86400000); d.setMinutes(0,0,0);
+  const iso=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const inner=node('<div style="padding:22px 22px 26px;"></div>');
+  inner.appendChild(node(`<div class="h1" style="font-size:22px;">Schedule a video session</div>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin:16px 0 6px;">Title</div><input id="sesTitle" placeholder="e.g. Weekly check-in" style="width:100%;padding:12px 14px;border-radius:13px;font-size:14px;"/>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin:14px 0 6px;">When</div><input id="sesWhen" type="datetime-local" value="${iso}" style="width:100%;padding:12px 14px;border-radius:13px;font-size:14px;"/>`));
+  inner.appendChild(node(`<div class="eyebrow" style="margin:14px 0 6px;">Video link</div>`));
+  inner.appendChild(node(`<label style="display:flex;align-items:center;gap:9px;font-size:13.5px;padding:6px 0;"><input type="radio" name="vmode" value="auto" checked onchange="App.vmode('auto')" style="accent-color:var(--sage);"/> Generate a room for me (Jitsi Meet)</label>`));
+  inner.appendChild(node(`<label style="display:flex;align-items:center;gap:9px;font-size:13.5px;padding:6px 0;"><input type="radio" name="vmode" value="custom" onchange="App.vmode('custom')" style="accent-color:var(--sage);"/> Paste my own link (Zoom, Meet, Teams)</label>`));
+  inner.appendChild(node(`<input id="sesLink" placeholder="https://…" style="width:100%;padding:12px 14px;border-radius:13px;font-size:14px;margin-top:8px;display:none;"/>`));
+  inner.appendChild(node(`<div style="font-size:11px;color:var(--ink-faint);margin-top:10px;line-height:1.45;">Anyone with the link can join. For confidential clinical sessions, use a compliant provider (e.g. HIPAA-ready). Video runs over HTTPS and needs camera/mic permission.</div>`));
+  inner.appendChild(node(`<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="App.createSession('${gid}')">Schedule session</button>`));
+  inner.appendChild(node(`<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.closeOverlay()">Cancel</button>`));
+  const ov=overlay(inner); ov.querySelector('.sheet').style.zoom=String(S.settings.textSize||1);
+}
+
+/* ===================== CONNECT DEVICES (Web Bluetooth) ===================== */
+let hrDevice=null, hrChar=null;
+async function connectHR(){
+  if(!navigator.bluetooth){ toast('Bluetooth needs Chrome/Edge + HTTPS','info'); return; }
+  try{
+    const dev=await navigator.bluetooth.requestDevice({ filters:[{services:['heart_rate']}] });
+    hrDevice=dev; dev.addEventListener('gattserverdisconnected', onHRDisconnect);
+    const server=await dev.gatt.connect();
+    const svc=await server.getPrimaryService('heart_rate');
+    hrChar=await svc.getCharacteristic('heart_rate_measurement');
+    await hrChar.startNotifications();
+    hrChar.addEventListener('characteristicvaluechanged', e=>{ const bpm=parseHR(e.target.value); S.hr={connected:true,bpm}; const el=$('#hrValue'); if(el){ el.textContent=bpm; const z=$('#hrZone'); if(z) z.textContent=hrZone(bpm); } else render(); });
+    S.hr.connected=true; toast('Heart-rate connected','check'); render();
+  }catch(e){ /* user cancelled or failed */ }
+}
+function parseHR(v){ const flags=v.getUint8(0); return (flags&0x1)? v.getUint16(1,true) : v.getUint8(1); }
+function onHRDisconnect(){ S.hr={connected:false,bpm:null}; hrChar=null; render(); }
+function disconnectHR(){ try{ hrDevice&&hrDevice.gatt.connected&&hrDevice.gatt.disconnect(); }catch(e){} S.hr={connected:false,bpm:null}; render(); }
+function hrZone(b){ if(b<60) return 'resting · very calm'; if(b<72) return 'calm'; if(b<88) return 'relaxed–alert'; if(b<104) return 'activated'; return 'elevated · try a breath'; }
+function renderConnect(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Connect your world</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Bring in real signals so Sprout understands your body, not just your words.</div>`));
+
+  // live HR (real, Web Bluetooth)
+  if(S.hr.connected){
+    wrap.appendChild(node(`<div class="card" style="margin-top:16px;text-align:center;background:linear-gradient(160deg,var(--care-tint),var(--card) 80%);">
+      <div style="font-size:12px;color:var(--care);font-weight:600;letter-spacing:.04em;text-transform:uppercase;">Live heart rate</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:6px;">${svg('heart',22,'var(--care)')}<span id="hrValue" style="font-family:var(--serif);font-size:52px;color:var(--ink);">${S.hr.bpm||'--'}</span><span style="font-size:16px;color:var(--ink-soft);">bpm</span></div>
+      <div id="hrZone" style="font-size:13px;color:var(--ink-soft);margin-top:2px;">${S.hr.bpm?hrZone(S.hr.bpm):'reading…'}</div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="App.disconnectHR()">Disconnect</button>
+    </div>`));
+  } else {
+    wrap.appendChild(node(`<div class="card" style="margin-top:16px;">
+      <div style="display:flex;align-items:center;gap:12px;"><div class="iconwrap" style="width:44px;height:44px;border-radius:13px;background:var(--care-tint);">${svg('heart',22,'var(--care)')}</div>
+      <div style="flex:1;"><div style="font-size:15px;font-weight:600;">Heart-rate monitor</div><div style="font-size:12.5px;color:var(--ink-faint);">Live from a Bluetooth chest strap or watch</div></div></div>
+      <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="App.connectHR()">${svg('activity',16,'#fff')} Connect device</button>
+      <div style="font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.45;">Works now in Chrome or Edge over HTTPS with any standard BLE heart-rate device. This one’s real — no backend needed.</div>
+    </div>`));
+  }
+
+  // scaffolded platforms (need backend OAuth / companion app)
+  wrap.appendChild(node(`<div class="eyebrow" style="margin:22px 0 8px;">Health platforms</div><div style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;">Full sync (steps, sleep, HRV) connects through each platform’s secure API — ready to switch on with the backend.</div>`));
+  const plats=[['Apple Health','heart'],['Google Fit','activity'],['Fitbit','trending'],['Oura Ring','moon'],['Garmin','compass'],['Samsung Health','sun']];
+  const pg=node('<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>');
+  plats.forEach(([n,ic])=>pg.appendChild(node(`<div class="card" style="padding:14px;display:flex;align-items:center;gap:10px;opacity:.85;"><div class="iconwrap" style="width:36px;height:36px;border-radius:11px;background:var(--paper2);">${svg(ic,18,'var(--ink-soft)')}</div><div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;">${n}</div><div style="font-size:11px;color:var(--ink-faint);">Connect soon</div></div></div>`)));
+  wrap.appendChild(pg);
+
+  // developer / platform direction
+  wrap.appendChild(node(`<div class="eyebrow" style="margin:22px 0 8px;">Developer platform</div>`));
+  wrap.appendChild(node(`<div class="card"><div style="display:flex;gap:11px;align-items:flex-start;">${svg('compass',20,'var(--dusk)')}<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;">Sprout can also be an <b>open platform</b>: an API and an <b>MCP server</b> so other AI tools can use your check-in, journaling and coaching tools with your permission — and so outside developers can add coaches, content packs, and integrations as plug-ins. That turns Sprout from an app into a wellbeing layer other products build on.</div></div></div>`));
+  return wrap;
+}
+
+/* ========================= THERAPIST MARKETPLACE ========================= */
+function renderTherapists(){
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`<div class="h1" style="font-size:26px;margin-top:10px;">Work with a professional</div>`));
+  wrap.appendChild(node(`<div style="font-size:13.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;">Sprout is a companion, not a clinician. When you need a human, we help you find one.</div>`));
+
+  wrap.appendChild(node(`<div class="eyebrow" style="margin:20px 0 8px;">Find a therapist</div>`));
+  const dirs=[['Psychology Today directory','Filter by specialty, insurance, location'],['Local licensed directories','Vetted, region-specific listings'],['Sprout partner therapists','Verified professionals on Sprout']];
+  const dl=node('<div style="display:grid;gap:10px;"></div>');
+  dirs.forEach(([t,d],i)=>dl.appendChild(node(`<div class="card" style="display:flex;align-items:center;gap:11px;${i===2?'':'opacity:.9;'}"><div class="iconwrap" style="width:40px;height:40px;border-radius:12px;background:var(--sage-tint);">${svg('user',20,'var(--sage)')}</div><div style="flex:1;"><div style="font-size:14px;font-weight:600;">${t}</div><div style="font-size:12px;color:var(--ink-faint);">${d}</div></div>${svg('chevR',17,'var(--ink-faint)')}</div>`)));
+  wrap.appendChild(dl);
+  wrap.appendChild(node(`<div style="font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.45;">Directory search and booking connect through the backend. We never replace emergency care — for crisis, tap <b>Get help now</b>.</div>`));
+
+  // provider registration scaffold
+  wrap.appendChild(node(`<div class="eyebrow" style="margin:24px 0 8px;">For therapists · join Sprout</div>`));
+  wrap.appendChild(node(`<div class="card">
+    <div style="font-size:13.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:12px;">List your practice, get matched with clients, and run sessions with built-in video and notes.</div>
+    <input id="thName" placeholder="Full name" style="width:100%;padding:11px 14px;border-radius:12px;font-size:13.5px;margin-bottom:9px;"/>
+    <input id="thLicense" placeholder="Licence / registration number" style="width:100%;padding:11px 14px;border-radius:12px;font-size:13.5px;margin-bottom:9px;"/>
+    <input id="thSpec" placeholder="Specialties (e.g. CBT, trauma, couples)" style="width:100%;padding:11px 14px;border-radius:12px;font-size:13.5px;margin-bottom:9px;"/>
+    <input id="thEmail" placeholder="Email" style="width:100%;padding:11px 14px;border-radius:12px;font-size:13.5px;margin-bottom:12px;"/>
+    <button class="btn btn-primary btn-block" onclick="App.applyTherapist()">Apply to join</button>
+  </div>`));
+  wrap.appendChild(node(`<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;">${svg('shield',17,'var(--sage)')}<div style="font-size:12px;color:var(--ink-soft);line-height:1.5;">Real onboarding requires <b>licence verification</b>, identity checks, and insurance. Note: some regions restrict fee-splitting/commission on clinical care, so the model is often a flat <b>platform/subscription fee</b> rather than a cut of each session — worth checking local rules with a professional.</div></div>`));
+  return wrap;
+}
+
+/* ======================= IN-APP VIDEO ROOM ======================= */
+function openVideoRoom(link){
+  const embeddable = /meet\.jit\.si/.test(link);
+  const box=node('<div style="position:absolute;inset:0;z-index:320;background:#0b0f14;display:flex;flex-direction:column;"></div>');
+  box.appendChild(node(`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fff;flex-shrink:0;">
+    <div style="font-size:13px;display:flex;align-items:center;gap:8px;opacity:.92;">${svg('video',16,'#fff')} Live session</div>
+    <div style="display:flex;gap:8px;">
+      <button class="tap" onclick="App.videoNewTab('${link}')" style="font-size:12px;color:#fff;background:rgba(255,255,255,.16);padding:7px 11px;border-radius:9px;">Open in tab</button>
+      <button class="tap" onclick="App.leaveVideo()" style="font-size:12px;color:#fff;background:var(--care);padding:7px 13px;border-radius:9px;font-weight:600;">Leave</button>
+    </div>
+  </div>`));
+  if(embeddable){
+    box.appendChild(node(`<iframe src="${link}" allow="camera; microphone; fullscreen; display-capture; autoplay" style="flex:1;width:100%;border:none;"></iframe>`));
+    box.appendChild(node(`<div style="padding:8px 14px;color:rgba(255,255,255,.5);font-size:10.5px;text-align:center;flex-shrink:0;">Needs camera/mic permission and HTTPS. If the video doesn’t load here, tap “Open in tab”.</div>`));
+  } else {
+    box.appendChild(node(`<div style="flex:1;display:grid;place-items:center;padding:30px;text-align:center;color:#fff;">
+      <div>${svg('video',42,'#fff')}<div style="font-size:16px;font-weight:600;margin-top:16px;">This provider opens in its own window</div>
+      <div style="font-size:13px;opacity:.75;margin-top:8px;line-height:1.5;max-width:270px;margin-left:auto;margin-right:auto;">Zoom, Meet and Teams block embedding for security — join in a new tab.</div>
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="App.videoNewTab('${link}')">Join the call</button></div>
+    </div>`));
+  }
+  phone.appendChild(box); openVideoRoom._el=box;
+}
+
+/* ========================= SPROUT PLUS (paywall) ========================= */
+const PLUS_FEATURES = [
+  ['Daily check-ins & mood tracking', true, true],
+  ['Lumi companion (AI chat)', true, true],
+  ['Crisis support & helplines', true, true],
+  ['Core breathing & starter tools', true, true],
+  ['Join a group', true, true],
+  ['Unlimited coach sessions', false, true],
+  ['All 34 tools & guided meditations', false, true],
+  ['Weekly & monthly reports + burnout signal', false, true],
+  ['Every soundscape', false, true],
+  ['Wearable insights (heart-rate trends)', false, true],
+  ['Create & facilitate unlimited groups', false, true],
+  ['Priority new features', false, true],
+];
+function renderPlus(){
+  const on=S.settings.plus;
+  const wrap=node('<div class="pad"></div>');
+  wrap.appendChild(node(`<button class="tap" onclick="App.go('today')" style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:13.5px;margin-top:6px;">${svg('chevL',16,'var(--ink-soft)')} Back</button>`));
+  wrap.appendChild(node(`
+    <div style="text-align:center;margin-top:14px;">
+      <div style="width:66px;height:66px;border-radius:20px;background:linear-gradient(150deg,var(--sage),var(--honey));display:grid;place-items:center;margin:0 auto;box-shadow:0 12px 30px color-mix(in srgb,var(--sage) 35%,transparent);">${svg('sparkles',32,'#fff')}</div>
+      <div class="h1" style="font-size:28px;margin-top:14px;">Sprout Plus</div>
+      <div style="font-size:14px;color:var(--ink-soft);margin-top:6px;line-height:1.5;max-width:300px;margin-left:auto;margin-right:auto;">Everything that helps you keep growing — unlocked. ${on?'You’re on Plus.':''}</div>
+    </div>`));
+
+  if(!on){
+    wrap.appendChild(node(`
+      <div style="display:flex;gap:11px;margin-top:20px;">
+        <button class="tap" onclick="App.upgradePlus('year')" style="flex:1;text-align:center;padding:18px 12px;border-radius:18px;border:2px solid var(--sage);background:var(--sage-tint);position:relative;">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--sage);color:#fff;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:99px;">BEST VALUE</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">Yearly</div>
+          <div style="font-family:var(--serif);font-size:26px;margin-top:2px;">$59</div>
+          <div style="font-size:11.5px;color:var(--ink-faint);">≈ $4.92 / month</div>
+        </button>
+        <button class="tap" onclick="App.upgradePlus('month')" style="flex:1;text-align:center;padding:18px 12px;border-radius:18px;border:1.5px solid var(--line);background:var(--card);">
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">Monthly</div>
+          <div style="font-family:var(--serif);font-size:26px;margin-top:2px;">$8</div>
+          <div style="font-size:11.5px;color:var(--ink-faint);">per month</div>
+        </button>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--ink-faint);margin-top:10px;">7-day free trial · cancel anytime</div>`));
+  } else {
+    wrap.appendChild(node(`<div class="card" style="margin-top:18px;text-align:center;background:var(--sage-tint);"><div style="font-size:14px;font-weight:600;color:var(--sage);">${svg('check',16,'var(--sage)')} Plus is active (demo)</div><button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="App.cancelPlus()">Switch back to Free</button></div>`));
+  }
+
+  wrap.appendChild(node(`<div style="margin-top:24px;display:grid;grid-template-columns:1fr auto auto;gap:0 14px;align-items:center;">
+    <div></div><div style="font-size:11px;color:var(--ink-faint);text-align:center;font-weight:600;">FREE</div><div style="font-size:11px;color:var(--sage);text-align:center;font-weight:700;">PLUS</div>
+  </div>`));
+  const table=node('<div style="margin-top:6px;"></div>');
+  PLUS_FEATURES.forEach(([name,f,p],i)=>{
+    table.appendChild(node(`<div style="display:grid;grid-template-columns:1fr auto auto;gap:0 14px;align-items:center;padding:11px 0;${i?'border-top:1px solid var(--line);':''}">
+      <div style="font-size:13.5px;">${name}</div>
+      <div style="width:24px;text-align:center;">${f?svg('check',17,'var(--ink-faint)'):'<span style=\"color:var(--line);\">—</span>'}</div>
+      <div style="width:24px;text-align:center;">${p?svg('check',17,'var(--sage)'):'<span style=\"color:var(--line);\">—</span>'}</div>
+    </div>`));
+  });
+  wrap.appendChild(table);
+
+  wrap.appendChild(node(`<div style="margin-top:22px;padding:15px;border-radius:16px;background:var(--paper2);border:1px solid var(--line);display:flex;gap:11px;align-items:flex-start;">${svg('heart',18,'var(--sage)')}<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.55;"><b>Our promise:</b> crisis support, check-ins, and Lumi are free forever — we’ll never paywall your safety. No ads. We never sell your data. Cancel in one tap.</div></div>`));
+
+  wrap.appendChild(node(`<div style="margin-top:14px;padding:15px;border-radius:16px;background:var(--dusk-tint);display:flex;gap:11px;align-items:flex-start;">${svg('users',18,'var(--dusk)')}<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.55;"><b>For teams, schools & clinics:</b> Sprout can be sponsored for your whole community, so members get Plus free. <button onclick="App.goTherapists()" style="color:var(--dusk);font-weight:600;background:none;">Talk to us →</button></div></div>`));
+  return wrap;
+}
+
 /* ------------------------------ App ------------------------------- */
 const App = {
   step(n){ S.step=n; render(); },
@@ -2046,6 +2355,47 @@ const App = {
   openCrisis(){ openCrisis(); },
   closeOverlay(){ document.querySelectorAll('.overlay').forEach(o=>o.remove()); },
   openMenu(){ openDrawer(); },
+  // avatar / photo
+  openAvatar(){ App.closeOverlay(); openAvatar(); },
+  setAvatarPreset(i){ S.profile.avatarPreset=i; S.profile.avatar=null; saveState(); App.closeOverlay(); openAvatar(); render(); },
+  uploadAvatar(input){ const f=input.files&&input.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=e=>{ S.profile.avatar=e.target.result; S.profile.avatarPreset=null; saveState(); App.closeOverlay(); openAvatar(); render(); }; rd.readAsDataURL(f); },
+  removeAvatar(){ S.profile.avatar=null; saveState(); App.closeOverlay(); openAvatar(); render(); },
+  // groups
+  goGroups(){ App.closeOverlay(); S.tab='groups'; render(); },
+  openCreateGroup(){ App.closeOverlay(); openCreateGroup(); },
+  createGroup(){ const nm=($('#grpName')||{}).value?.trim(); if(!nm){ toast('Give the group a name','info'); return; } const desc=($('#grpDesc')||{}).value?.trim()||''; const fac=S.profile.name||'You'; const g={id:'g'+Date.now(), name:nm, desc, members:[{name:fac+' (you)', role:'facilitator'}], messages:[], sessions:[]}; S.groups.unshift(g); S.activeGroup=g.id; saveState(); App.closeOverlay(); S.tab='group'; render(); },
+  openGroup(id){ S.activeGroup=id; S.tab='group'; render(); },
+  addMember(gid){ const g=groupById(gid); const inp=$('#memInput'); const v=inp?inp.value.trim():''; if(!g||!v) return; g.members.push({name:v, role:'member'}); saveState(); render(); },
+  removeMember(gid,i){ const g=groupById(gid); if(!g) return; if(g.members[i]&&g.members[i].role==='facilitator'){ toast('Keep at least one facilitator','info'); return; } g.members.splice(i,1); saveState(); render(); },
+  groupPost(gid){ const g=groupById(gid); const inp=$('#grpInput'); const v=inp?inp.value.trim():''; if(!g||!v) return; g.messages.push({who:'You', text:v, ts:Date.now()}); saveState(); render(); },
+  async groupFacilitator(gid){ const g=groupById(gid); if(!g) return; g.messages.push({who:'Lumi', text:'…', ts:Date.now(), pending:true}); render();
+    let reply='';
+    try{ const recent=(g.messages.filter(m=>!m.pending).slice(-8)).map(m=>`${m.who}: ${m.text}`).join('\n');
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,system:`You are Lumi, a warm, skilled group facilitator for a mental-wellness support circle called "${g.name}". Open or move the conversation gently: welcome people, ask one caring open question, reflect themes, and keep it safe and inclusive. 2-4 sentences. Never give medical advice or diagnoses; if someone seems in crisis, gently encourage reaching real support.`,messages:[{role:'user',content:(recent||'The group is quiet. Warmly open the circle with a welcome and one gentle question.')}]})});
+      const data=await res.json(); reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    }catch(e){ reply=''; }
+    if(!reply) reply='Welcome, everyone. I’m really glad you’re here. Would anyone like to share how they’re arriving today — in a word or a sentence?';
+    g.messages=g.messages.filter(m=>!m.pending); g.messages.push({who:'Lumi', text:reply, ts:Date.now()}); saveState(); render();
+  },
+  // video sessions
+  openSchedule(gid){ App.closeOverlay(); openSchedule(gid); },
+  vmode(m){ const el=$('#sesLink'); if(el) el.style.display = m==='custom'?'block':'none'; },
+  createSession(gid){ const g=groupById(gid); if(!g) return; const title=($('#sesTitle')||{}).value?.trim()||'Group session'; const whenRaw=($('#sesWhen')||{}).value; const ts=whenRaw?new Date(whenRaw).getTime():Date.now()+86400000; const mode=(document.querySelector('input[name="vmode"]:checked')||{}).value||'auto'; let link; if(mode==='custom'){ link=($('#sesLink')||{}).value?.trim(); if(!link){ toast('Paste your meeting link','info'); return; } if(!/^https?:\/\//.test(link)) link='https://'+link; } else { link='https://meet.jit.si/Sprout-'+slugify(g.name)+'-'+Math.random().toString(36).slice(2,7); } const whenLabel=new Date(ts).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); g.sessions.push({id:'s'+Date.now(), title, ts, whenLabel, link}); saveState(); App.closeOverlay(); toast('Session scheduled','check'); render(); },
+  joinSession(link){ openVideoRoom(link); },
+  leaveVideo(){ if(openVideoRoom._el){ openVideoRoom._el.remove(); openVideoRoom._el=null; } },
+  videoNewTab(link){ try{ window.open(link,'_blank','noopener'); }catch(e){} },
+  // plus
+  goPlus(){ App.closeOverlay(); S.tab='plus'; render(); },
+  upgradePlus(plan){ S.settings.plus=true; saveState(); celebrate('Welcome to Sprout Plus','sparkles'); render(); },
+  cancelPlus(){ S.settings.plus=false; saveState(); toast('Back on Free — your data’s safe','check'); render(); },
+  copyLink(link){ try{ navigator.clipboard.writeText(link); toast('Link copied','link'); }catch(e){ toast(link,'link'); } },
+  // wearable
+  connectHR(){ connectHR(); },
+  disconnectHR(){ disconnectHR(); },
+  goConnect(){ App.closeOverlay(); S.tab='connect'; render(); },
+  // therapist
+  goTherapists(){ App.closeOverlay(); S.tab='therapists'; render(); },
+  applyTherapist(){ const nm=($('#thName')||{}).value?.trim(); if(!nm){ toast('Add your name','info'); return; } App.closeOverlay(); toast('Application received — we’ll be in touch','check'); },
   goMore(){ App.closeOverlay(); S.tab='more'; render(); },
   // coaches
   startCoach(id){ const co=coachById(id); if(!co) return; S.coach=id; S.chat=[{role:'assistant',content:co.hi}]; App.closeOverlay(); S.tab='companion'; render(); },
